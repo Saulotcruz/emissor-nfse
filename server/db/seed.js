@@ -19,7 +19,7 @@ export function emitenteDoAmbiente(env = process.env) {
     nome_fantasia: env.EMITENTE_NOME_FANTASIA || null,
     cnpj: apenasDigitos(env.EMITENTE_CNPJ),
     inscricao_municipal: env.EMITENTE_INSCRICAO_MUNICIPAL || null,
-    codigo_municipio: env.EMITENTE_CODIGO_MUNICIPIO,
+    codigo_municipio: validarMunicipio(env.EMITENTE_CODIGO_MUNICIPIO),
     cnae: env.EMITENTE_CNAE || null,
     regime_tributario: env.EMITENTE_REGIME_TRIBUTARIO || 'lucro_presumido',
     optante_simples_nacional: env.EMITENTE_OPTANTE_SIMPLES === '1' ? 1 : 0,
@@ -38,6 +38,39 @@ export function emitenteDoAmbiente(env = process.env) {
   };
 }
 
+/**
+ * Converte uma variável de ambiente em número, com erro explícito.
+ *
+ * Vale o rigor: uma alíquota que virasse NaN ou 0 em silêncio emitiria nota com
+ * tributo errado. Aceita vírgula como separador decimal, que é o hábito daqui,
+ * e recusa `%` — que é fácil de escrever e faz `Number()` devolver NaN.
+ */
+export function numeroDoAmbiente(valor, campo, { padrao = 0 } = {}) {
+  if (valor === undefined || valor === null || String(valor).trim() === '') return padrao;
+
+  const bruto = String(valor).trim();
+  if (bruto.includes('%')) {
+    throw new Error(
+      `${campo}="${bruto}": não use o símbolo %. A alíquota já é percentual — escreva ${bruto.replace(/%/g, '').replace(',', '.')}`
+    );
+  }
+
+  const n = Number(bruto.replace(',', '.'));
+  if (!Number.isFinite(n)) throw new Error(`${campo}="${bruto}" não é um número válido`);
+  if (n < 0) throw new Error(`${campo}="${bruto}" não pode ser negativo`);
+  return n;
+}
+
+function validarMunicipio(valor) {
+  const codigo = apenasDigitos(valor);
+  if (codigo.length !== 7) {
+    throw new Error(
+      `EMITENTE_CODIGO_MUNICIPIO="${valor}": informe o código IBGE de 7 dígitos (ex.: 3106200)`
+    );
+  }
+  return codigo;
+}
+
 export function servicoDoAmbiente(env = process.env) {
   if (!env.SERVICO_CODIGO || !env.SERVICO_DESCRICAO) {
     throw new Error('Configure SERVICO_CODIGO e SERVICO_DESCRICAO no .env antes de rodar o seed');
@@ -47,19 +80,19 @@ export function servicoDoAmbiente(env = process.env) {
     codigo_tributacao_nacional: env.SERVICO_CODIGO,
     descricao: env.SERVICO_DESCRICAO,
     codigo_nbs: env.SERVICO_NBS || null,
-    aliquota_iss: Number(env.SERVICO_ALIQUOTA_ISS || 0),
+    aliquota_iss: numeroDoAmbiente(env.SERVICO_ALIQUOTA_ISS, 'SERVICO_ALIQUOTA_ISS'),
     iss_retido: env.SERVICO_ISS_RETIDO === '1' ? 1 : 0,
     tipo_tributacao_issqn: env.SERVICO_TIPO_TRIBUTACAO_ISSQN || 'operacao_tributavel',
     situacao_pis_cofins: env.SERVICO_SITUACAO_PIS_COFINS || 'STANDARD_TAXABLE_OPERATION',
-    tipo_retencao_pis_cofins: Number(env.SERVICO_TIPO_RETENCAO_PIS_COFINS || 0),
+    tipo_retencao_pis_cofins: numeroDoAmbiente(env.SERVICO_TIPO_RETENCAO_PIS_COFINS, 'SERVICO_TIPO_RETENCAO_PIS_COFINS'),
     // Alíquotas da operação própria — NÃO são retenção.
-    aliquota_pis: Number(env.SERVICO_ALIQUOTA_PIS || 0),
-    aliquota_cofins: Number(env.SERVICO_ALIQUOTA_COFINS || 0),
-    ret_pis: Number(env.SERVICO_RET_PIS || 0),
-    ret_cofins: Number(env.SERVICO_RET_COFINS || 0),
-    ret_csll: Number(env.SERVICO_RET_CSLL || 0),
-    ret_inss: Number(env.SERVICO_RET_INSS || 0),
-    ret_ir: Number(env.SERVICO_RET_IR || 0),
+    aliquota_pis: numeroDoAmbiente(env.SERVICO_ALIQUOTA_PIS, 'SERVICO_ALIQUOTA_PIS'),
+    aliquota_cofins: numeroDoAmbiente(env.SERVICO_ALIQUOTA_COFINS, 'SERVICO_ALIQUOTA_COFINS'),
+    ret_pis: numeroDoAmbiente(env.SERVICO_RET_PIS, 'SERVICO_RET_PIS'),
+    ret_cofins: numeroDoAmbiente(env.SERVICO_RET_COFINS, 'SERVICO_RET_COFINS'),
+    ret_csll: numeroDoAmbiente(env.SERVICO_RET_CSLL, 'SERVICO_RET_CSLL'),
+    ret_inss: numeroDoAmbiente(env.SERVICO_RET_INSS, 'SERVICO_RET_INSS'),
+    ret_ir: numeroDoAmbiente(env.SERVICO_RET_IR, 'SERVICO_RET_IR'),
     padrao: 1,
   };
 }
