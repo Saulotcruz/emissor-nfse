@@ -20,7 +20,9 @@
     "express-async-errors": "^3.1.1",
     "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.0",
-    "mysql2": "^3.11.0"
+    "mysql2": "^3.11.0",
+    "node-forge": "^1.4.0",
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

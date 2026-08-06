@@ -11,7 +11,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 | Fase | Escopo | Estado |
 |---|---|---|
 | 1 | Esqueleto, banco, autenticação, tomadores, configuração, cálculo de tributos | ✅ concluída |
-| 2 | `dps-builder` + `signer` (XMLDSig) | ⬜ |
+| 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
 | 3 | `transport` + emissão em Produção Restrita | ⬜ |
 | 4 | Webhook da Stripe + idempotência | ⬜ |
 | 5 | Painel React | ⬜ |
@@ -62,8 +62,26 @@ server/
     documento.js          validação de CNPJ/CPF
     calculo.js            apuração de ISS/PIS/COFINS e retenções
     brasilapi.js          consulta cadastral de CNPJ
+    nfse/
+      id-dps.js           Id da DPS, faixas de série, chave de acesso
+      xml.js              escape, decimais e datas no formato do XSD
+      dps-builder.js      objeto de domínio -> XML da DPS
+      signer.js           XMLDSig sobre infDPS (xml-crypto + node-forge)
+schemas/1.01/             XSDs oficiais (gov.br), sem modificação
   tests/
 ```
+
+## Validação do XML
+
+Os XSDs oficiais estão versionados em `schemas/1.01/` **sem nenhuma alteração**. Os testes
+validam o XML gerado com `xmllint` (nativo no macOS; no Linux, pacote `libxml2-utils`).
+
+> **Defeito conhecido do pacote oficial v1.01**: o tipo `TSSerieDPS` traz
+> `pattern="^0{0,4}\d{1,5}$"`. Em XML Schema os patterns já são ancorados e `^`/`$` valem como
+> caracteres literais — do jeito que está, nenhum valor de série valida. É o único pattern do
+> arquivo com âncoras e a v1.00 não tinha pattern algum, então é erro de digitação do schema.
+> A correção é aplicada só na cópia temporária usada na validação
+> (`server/tests/helpers/xsd.js`), para a divergência ficar explícita.
 
 ## Referência fiscal
 
