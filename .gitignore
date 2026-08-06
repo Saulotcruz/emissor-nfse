@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.test
+.env.local
+web/dist/
+coverage/
+*.log
+
+# Certificados digitais nunca entram no repositório.
+*.pfx
+*.p12
+*.pem
+*.key
+certs/

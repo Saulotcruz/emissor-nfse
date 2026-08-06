@@ -1,0 +1,32 @@
+{
+  "name": "nfse-emissor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Emissor de NFS-e no Padrao Nacional - integracao direta Stripe -> SEFIN Nacional",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "migrate": "node server/db/migrate-cli.js",
+    "seed": "node server/db/seed-cli.js",
+    "test": "cross-env NODE_ENV=test vitest run",
+    "build:web": "npm --prefix web run build",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.18.0",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.9.0",
+    "supertest": "^7.0.0",
+    "vitest": "^2.0.5"
+  }
+}
