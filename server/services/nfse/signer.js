@@ -98,11 +98,28 @@ export function diasParaVencer(certificado, agora = new Date()) {
  * @param {string} [algoritmo]    'sha256' (padrão) ou 'sha1'
  * @returns {string} XML com <Signature> inserida dentro de <DPS>
  */
-export function assinarDps(xml, certificado, { algoritmo = 'sha256' } = {}) {
+export function assinarDps(xml, certificado, opcoes = {}) {
+  return assinarXml(xml, certificado, { ...opcoes, elemento: 'infDPS' });
+}
+
+/**
+ * Assina o Pedido de Registro de Evento (cancelamento e afins).
+ * Mesmo mecanismo da DPS, mudando só o elemento referenciado: aqui é o
+ * `infPedReg`, conforme `TCPedRegEvt` no XSD.
+ */
+export function assinarPedidoEvento(xml, certificado, opcoes = {}) {
+  return assinarXml(xml, certificado, { ...opcoes, elemento: 'infPedReg' });
+}
+
+/**
+ * Assinatura XMLDSig enveloped sobre um elemento identificado por `Id`.
+ * @param {string} opcoes.elemento  nome local do elemento assinado
+ */
+export function assinarXml(xml, certificado, { algoritmo = 'sha256', elemento = 'infDPS' } = {}) {
   const algs = ALGORITMOS[algoritmo];
   if (!algs) throw new Error(`Algoritmo de assinatura desconhecido: ${algoritmo}`);
 
-  const id = extrairIdInfDps(xml);
+  const id = extrairId(xml, elemento);
 
   const sig = new SignedXml({
     privateKey: certificado.privateKeyPem,
@@ -112,8 +129,8 @@ export function assinarDps(xml, certificado, { algoritmo = 'sha256' } = {}) {
   });
 
   sig.addReference({
-    // Referencia o infDPS pelo Id — é o que o padrão exige, não o documento inteiro.
-    xpath: `//*[local-name(.)='infDPS']`,
+    // Referencia o elemento pelo Id — é o que o padrão exige, não o documento inteiro.
+    xpath: `//*[local-name(.)='${elemento}']`,
     transforms: [TRANSFORM_ENVELOPED, C14N_EXCLUSIVA],
     digestAlgorithm: algs.digest,
     uri: `#${id}`,
@@ -124,8 +141,8 @@ export function assinarDps(xml, certificado, { algoritmo = 'sha256' } = {}) {
     `<X509Data><X509Certificate>${certificado.certificateBase64}</X509Certificate></X509Data>`;
 
   sig.computeSignature(xml, {
-    // A Signature é irmã de infDPS, dentro de DPS.
-    location: { reference: `//*[local-name(.)='infDPS']`, action: 'after' },
+    // A Signature é irmã do elemento assinado, dentro da raiz.
+    location: { reference: `//*[local-name(.)='${elemento}']`, action: 'after' },
   });
 
   return sig.getSignedXml();
@@ -145,9 +162,9 @@ export function verificarAssinatura(xmlAssinado, certificadoPem) {
   return { valido, erros: valido ? [] : sig.getSignedReferences?.() ?? ['assinatura inválida'] };
 }
 
-function extrairIdInfDps(xml) {
-  const m = xml.match(/<infDPS[^>]*\sId="([^"]+)"/);
-  if (!m) throw new Error('XML da DPS não tem infDPS com atributo Id');
+function extrairId(xml, elemento) {
+  const m = xml.match(new RegExp(`<${elemento}[^>]*\\sId="([^"]+)"`));
+  if (!m) throw new Error(`XML não tem ${elemento} com atributo Id`);
   return m[1];
 }
 

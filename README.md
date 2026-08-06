@@ -15,7 +15,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 | 3 | `transport` + emissão em Produção Restrita | ✅ concluída — **NFS-e autorizada** |
 | 4 | Webhook da Stripe + idempotência | ⬜ |
 | 5 | Painel React | ⬜ |
-| 6 | Cancelamento e reemissão | ⬜ |
+| 6 | Cancelamento e reemissão | ✅ concluída |
 | 7 | Virada para Produção | ⬜ |
 
 ## Stack
@@ -102,6 +102,19 @@ Use `--dry-run` para ver o XML assinado sem enviar nada (não consome número de
 `--sha1` para trocar o algoritmo da assinatura. O ambiente vem de `emitente.ambiente`; em
 produção o script pede confirmação explícita antes de emitir.
 
+### Cancelando uma nota
+
+```bash
+npm run cancelar -- --nota 1 --motivo "Emissao de teste em homologacao"
+```
+
+A justificativa precisa ter entre 15 e 255 caracteres (exigência do schema). `--codigo` aceita
+`1` erro na emissão (padrão), `2` serviço não prestado ou `9` outros. Use `--dry-run` para ver
+o XML assinado sem enviar.
+
+Prazo, valor limite e exigência de tomador identificado são **parametrizados pelo município**
+(regras E0822, E0823 e E0824), então a recusa pode ser legítima mesmo com o XML correto.
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):
@@ -133,6 +146,7 @@ server/
       dps-builder.js      objeto de domínio -> XML da DPS
       signer.js           XMLDSig sobre infDPS (xml-crypto + node-forge)
       client.js           fachada: reserva, monta, assina, envia e persiste
+      evento-builder.js   pedido de registro de evento (cancelamento e101101)
       transport.js        mTLS, gzip+base64, POST/GET/HEAD e eventos
       errors.js           rejeição x transporte x certificado
 schemas/1.01/             XSDs oficiais (gov.br), sem modificação

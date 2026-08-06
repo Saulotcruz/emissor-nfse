@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import { pool, withTransaction } from '../../db/pool.js';
 import { montarDps } from './dps-builder.js';
 import { montarIdDps } from './id-dps.js';
-import { lerCertificado, assinarDps } from './signer.js';
+import { lerCertificado, assinarDps, assinarPedidoEvento } from './signer.js';
 import { SefinClient } from './transport.js';
+import { montarCancelamento, MOTIVO_CANCELAMENTO } from './evento-builder.js';
 import { SefinError, TransporteSefinError } from './errors.js';
 
 /**
@@ -205,4 +206,60 @@ function extrairChave(resposta) {
 
 function extrairNumeroNfse(nfseXml) {
   return nfseXml.match(/<nNFSe>([^<]+)<\/nNFSe>/)?.[1] ?? null;
+}
+
+/**
+ * Cancela uma NFS-e autorizada, via evento e101101.
+ *
+ * O prazo e as condições de cancelamento são parametrizados pelo município
+ * (E0822 prazo, E0823 valor, E0824 tomador não identificado), então a rejeição
+ * pode ser legítima mesmo com o XML correto.
+ *
+ * @param {number} notaId
+ * @param {object} p
+ * @param {string} p.motivo        entre 15 e 255 caracteres
+ * @param {string} [p.codigoMotivo] '1' erro na emissão | '2' serviço não prestado | '9' outros
+ */
+export async function cancelarNota(notaId, { motivo, codigoMotivo = MOTIVO_CANCELAMENTO.erro_emissao, algoritmo = 'sha256' } = {}) {
+  const [[nota]] = await pool.query('SELECT * FROM nota WHERE id = ?', [notaId]);
+  if (!nota) throw new Error(`Nota ${notaId} não encontrada`);
+  if (nota.status === 'cancelada') return { jaCancelada: true, nota };
+  if (nota.status !== 'autorizada' || !nota.chave_acesso) {
+    throw new Error(`Só é possível cancelar nota autorizada. Nota ${notaId} está "${nota.status}"`);
+  }
+
+  const emitente = await carregarEmitente();
+  const { xml, id } = montarCancelamento({
+    emitente,
+    chaveAcesso: nota.chave_acesso,
+    motivo,
+    codigoMotivo,
+    ambiente: nota.ambiente,
+  });
+
+  const { client, certificado } = criarClienteSefin(emitente);
+  const assinado = assinarPedidoEvento(xml, certificado, { algoritmo });
+
+  const [r] = await pool.query(
+    'INSERT INTO nota_evento (nota_id, tipo, motivo, status, evento_xml) VALUES (?, ?, ?, ?, ?)',
+    [notaId, 'e101101', motivo, 'pendente', assinado]
+  );
+
+  try {
+    const retorno = await client.enviarEvento(nota.chave_acesso, assinado);
+    await pool.query('UPDATE nota_evento SET status = ?, retorno_xml = ? WHERE id = ?', [
+      'aceito',
+      JSON.stringify(retorno).slice(0, 60000),
+      r.insertId,
+    ]);
+    await pool.query('UPDATE nota SET status = ? WHERE id = ?', ['cancelada', notaId]);
+    return { jaCancelada: false, idPedido: id, retorno };
+  } catch (e) {
+    await pool.query('UPDATE nota_evento SET status = ?, erro_mensagem = ? WHERE id = ?', [
+      'rejeitado',
+      e.message?.slice(0, 2000) ?? String(e),
+      r.insertId,
+    ]);
+    throw e;
+  }
 }

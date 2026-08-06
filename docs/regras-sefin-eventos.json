@@ -1,0 +1,234 @@
+[
+ {
+  "cod": "E1260",
+  "texto": "2 | evento/ | versao | O prazo de aceitação da versão do leiaute do DF-e ultrapassado. | Obrig. | Rej. | E1260 | O prazo de aceitação da versão do leiaute do DF-e expirou. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1802",
+  "texto": "4 | evento/infEvento/ | id | Campo identificador do Evento (EVT) inválido. Identificador do evento difere da concatenação dos campos correspondentes existente no leiaute evento. A formação deste identificador considera o literal \"EVT\" associado a outras 59 posições numéricas, conforme descrito abaixo: \"EVT\" + id do Pedido de Registo de Evento (56) + Número sequencial do evento (nSeqEvento) (3) | Obrig. | Rej. | E1802 | Conteúdo do identificador informado no identificador do evento difere da concatenação dos campos correspondentes. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1805",
+  "texto": "5 | O id do evento compartilhado já existe no ADN. | Obrig. | Rej. | E1805 | Já existe um Evento com este identificador no ADN NFS-e. | 1 | X | X | V | V | -"
+ },
+ {
+  "cod": "E0802",
+  "texto": "6 | O id do evento gerado já existe no ADN. | Obrig. | Rej. | E0802 | Já existe um documento fiscal eletrônico identificado com este id no Sistema Nacional NFS-e. | V | V | X | X | -"
+ },
+ {
+  "cod": "E1274",
+  "texto": "8 | evento/infEvento/ | ambGer | Verificar se o ambiente gerador da NFS-e está de acordo com a definição: 1- Sistema Próprio do Município, para as NFS-e compartilhadas pelo município para o ADN, ou 2 - Sefin Nacional NFS-e, para as NFS-e emitidas pela Sefin ou recepcionadas via API \"Bypass\". | Obrig. | Rej. | E1274 | O ambiente gerador da NFS-e não está de acordo com a definição 1 (Sistema Próprio do Município) ou 2 (Sefin Nacional). | 1 | X | X | V | V | -"
+ },
+ {
+  "cod": "E1278",
+  "texto": "10 | evento/infEvento/ | dhProc | A data/hora do registro do evento deve ser anterior à data/hora do processamento do documento pelo Sistema Nacional NFS-e. | Obrig. | Rej. | E1278 | A data e hora do processamento (geração) do DF-e deve ser anterior ou igual à data da recepção pelo Sistema Nacional NFS-e. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1825",
+  "texto": "13 | evento/pedRegEvento/ | versao | Prazo de aceitação da versão do leiaute do pedido de registro de evento ultrapassado. | Obrig. | Rej. | E1825 | Prazo de aceitação da versão do leiaute do pedido de registro de evento expirou. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1827",
+  "texto": "15 | evento/pedRegEvento/infPedReg/ | id | Campo identificador do Pedido de Registro de Evento (PRE) inválido. Identificador do PRE difere da concatenação dos campos correspondentes existente no leiaute do PRE. A formação deste identificador considera o literal \"PRE\" associado a outras 56 posições numéricas, conforme descrito abaixo: \"PRE\" + Chave de acesso da NFS-e (50) + Código do evento (6) | Obrig. | Rej. | E1827 | Conteúdo do identificador informado no identificador do Pedido de Registro de Evento difere da concatenação dos campos correspondentes. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1818",
+  "texto": "16 | Não é permitido o compartilhamento dos seguintes eventos pelo município com o ADN são: 202201 - Manifestação de NFS-e de Confirmação do Prestador; 203202 - Manifestação de NFS-e de Confirmação do Tomador; 204203 - Manifestação de NFS-e de Confirmação do Intermediário; 202205 - Manifestação de NFS-e de Rejeição do Prestador; 203206 - Manifestação de NFS-e de Rejeição do Tomador; 204207 - Manifestação de NFS-e de Rejeição do Intermediário; | Obrig. | Rej. | E1818 | Não é permitido o compartilhamento pelo município com o ADN dos eventos de manifestação de NFS-e para confirmação ou rejeição pelos não emitentes de um NFS-e. Estes eventos devem ser emitidos pelos não emitentes da NFS-e diretamente no SEFIN NFS-e. | 1 | X | X | V | V | -"
+ },
+ {
+  "cod": "E1845",
+  "texto": "17 | evento/pedRegEvento/infPedReg/ | tpAmb | Tipo do ambiente informado difere do ambiente utilizado. | Obrig. | Rej. | E1845 | Ambiente informado diverge do ambiente de recebimento para o qual o emitente está enviando o evento. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1843",
+  "texto": "19 | evento/pedRegEvento/infPedReg/ | dhEvento | A data de emissão do pedido do registro do evento não pode ser posterior à data de recebimento do lote em que o Evento está sendo recebido pelo Sistema Nacional NFS-e. | Obrig. | Rej. | E1843 | A data de emissão do pedido do registro do evento não pode ser posterior à data de recebimento pelo Sistema Nacional NFS-e. | 1 | X | V | V | V | -"
+ },
+ {
+  "cod": "E0812",
+  "texto": "20 | evento/pedRegEvento/infPedReg/ | CNPJAutor | Se o autor do pedido de registro de evento for identificado por um CNPJ este deve corresponder ao mesmo CNPJ do certificado digital da assinatura, se informada no pedido. Verificar apenas o CNPJ base. | Obrig. | Rej. | E0812 | O CNPJ do autor do pedido de registro de evento não corresponde à base do CNPJ informada no certificado digital da assinatura do pedido. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0813",
+  "texto": "21 | O CNPJ autor identificado no pedido de registro de evento deve corresponder ao CNPJ conforme o \"AUTOR DO PEDIDO DE REGISTRO DE EVENTO\" da planilha \"Tipo Eventos\". | Obrig. | Rej. | E0813 | O CNPJ autor informado no pedido de registro de evento não corresponde ao \"AUTOR DO PEDIDO DE REGISTRO DE EVENTO\" indicado na planilha \"Tipo Eventos\". | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0815",
+  "texto": "22 | evento/pedRegEvento/infPedReg/ | CPFAutor | Se o autor do pedido de registro de evento for identificado por um CPF este deve corresponder ao mesmo CPF do certificado digital da assinatura, se informada no pedido. | Obrig. | Rej. | E0815 | O CPF do autor do pedido de registro de evento não corresponde ao CPF informado no certificado digital da assinatura do pedido. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0816",
+  "texto": "23 | O CPF autor identificado no pedido de registro de evento deve corresponder ao CPF conforme o \"AUTOR DO PEDIDO DE REGISTRO DE EVENTO\" da planilha \"Tipo Eventos\". | Obrig. | Rej. | E0816 | O CPF autor informado no pedido de registro de evento não corresponde ao \"AUTOR DO PEDIDO DE REGISTRO DE EVENTO\" indicado na planilha \"Tipo Eventos\". | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1831",
+  "texto": "24 | evento/pedRegEvento/infPedReg/ | chNFSe | A NFS-e indicada não existe no ADN NFS-e. | Obrig. | Rej. | E1831 | O pedido de registro de evento não pode ser validado pois a NFS-e indicada não existe no Ambiente de Dados Nacional NFS-e. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0822",
+  "texto": "25 | Não pode ocorrer cancelamento de NFS-e fora do prazo limite para o cancelamento da NFS-e, conforme parametrização do município emissor da NFS-e. | Obrig. | Rej. | E0822 | O prazo para o cancelamento da NFS-e expirou, conforme parametrização do município emissor da NFS-e. | 3 | V | V | X | X | -"
+ },
+ {
+  "cod": "E0823",
+  "texto": "26 | Não pode ocorrer cancelamento de NFS-e acima de valor permitido pelo município emissor da NFS-e, conforme parametrização do município emissor da NFS-e. | Obrig. | Rej. | E0823 | Valor da NFS-e a ser cancelada acima do permitido, conforme parametrização do município emissor da NFS-e. | 3 | V | V | X | X | -"
+ },
+ {
+  "cod": "E0824",
+  "texto": "27 | Não pode ocorrer o cancelamento de NFS-e que não esteja identificado o tomador de serviço, conforme parametrização do município emissor da NFS-e. | Obrig. | Rej. | E0824 | NFS-e sem indentificação do tomador do serviço não pode ser cancelada, conforme parametrização do município emissor da NFS-e. | 3 | V | V | X | X | -"
+ },
+ {
+  "cod": "E0827",
+  "texto": "28 | Não é permitido realizar um Evento de Cancelamento para NFS-e que possua Evento de Tributos Recolhidos vinculado, conforme parametrização do município de incidência do ISSQN da NFS-e. | Obrig. | Rej. | E0827 | Não é permitido realizar um Evento de Cancelamento para NFS-e que possua Evento de Tributos Recolhidos vinculado, conforme parametrização do município de incidência do ISSQN da NFS-e. | 3 | V | V | X | X | -"
+ },
+ {
+  "cod": "E0831",
+  "texto": "29 | O pedido de registro deste evento de NFS-e deve ser enviado para o ambiente que gerou a NFS-e referenciada no pedido. | Obrig. | Rej. | E0831 | O pedido de registro deste evento de NFS-e deve ser enviado para o ambiente que gerou a NFS-e referenciada no pedido. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1833",
+  "texto": "30 | Somente é permitido um único evento do tipo Manifestação de NFS-e (Confirmação e Rejeição), se o autor do evento, informado nos campos CNPJAutor ou CPFAutor, corresponder aos possíveis não emitentes da NFS-e indicada pela chave de acesso. | Obrig. | Rej. | E1833 | Somente é permitido um único evento do tipo Manifestação de NFS-e (Confirmação e Rejeição), por não emitente da NFS-e indicada no evento. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1835",
+  "texto": "31 | Somente é permitido um único evento do tipo Manifestação de NFS-e (Anulação da Rejeição) para cada Evento de Manifestação de NFS-e - Rejeição, emitido por cada um dos possíveis não emitentes da NFS-e indicada pela chave de acesso. | Obrig. | Rej. | E1835 | Somente é permitido um único evento do tipo Manifestação de NFS-e (Anulação da Rejeição) para cada Evento de Manifestação de NFS-e - Rejeição, emitido por cada possível não emitentes da NFS-e indicada pela chave de acesso. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0840",
+  "texto": "32 | evento/pedRegEvento/infPedReg/ | e101101 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE CANCELAMENTO NFS-e, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0840 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0845",
+  "texto": "36 | evento/pedRegEvento/infPedReg/ | e105102 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE CANCELAMENTO DE NFS-e POR SUBSTITUIÇÃO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0845 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e POR SUBSTITUIÇÃO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0848",
+  "texto": "41 | evento/pedRegEvento/infPedReg/ | e101103 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE SOLICITAÇÃO DE ANÁLISE FISCAL PARA CANCELAMENTO DE NFS-e, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0848 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE SOLICITAÇÃO DE ANÁLISE FISCAL PARA CANCELAMENTO DE NFS-e pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0853",
+  "texto": "45 | evento/pedRegEvento/infPedReg/ | e105104 | Não é permitida a recepção do deferimento de uma solicitação de cancelamento por análise fiscal sem que haja um Evento de Solicitação de Análise Fiscal para Cancelamento de NFS-e, que esteja pendente de deferimento ou indeferimento. | Obrig. | Rej. | E0853 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e DEFERIDO POR ANÁLISE FISCAL pois não existe um EVENTO DE SOLICITAÇÃO DE ANÁLISE FISCAL PARA CANCELAMENTO DE NFS-e pendente para deferimento ou indeferimento. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0852",
+  "texto": "46 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE CANCELAMENTO DE NFS-e DEFERIDO POR ANÁLISE FISCAL, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0852 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e DEFERIDO POR ANÁLISE FISCAL pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0856",
+  "texto": "52 | evento/pedRegEvento/infPedReg/ | e105105 | Não é permitida a recepção do indeferimento de uma solicitação de cancelamento por análise fiscal sem que haja um Evento de Solicitação de Análise Fiscal para Cancelamento de NFS-e, que esteja pendente de deferimento ou indeferimento. | Obrig. | Rej. | E0856 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e INDEFERIDO POR ANÁLISE FISCAL pois não existe um EVENTO DE SOLICITAÇÃO DE ANÁLISE FISCAL PARA CANCELAMENTO DE NFS-e pendente para deferimento ou indeferimento. | 1 | V | - | V | - | -"
+ },
+ {
+  "cod": "E0855",
+  "texto": "53 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE CANCELAMENTO DE NFS-E INDEFERIDO POR ANÁLISE FISCAL, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0855 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-E INDEFERIDO POR ANÁLISE FISCAL pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0860",
+  "texto": "59 | evento/pedRegEvento/infPedReg/ | e202201 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO PRESTADOR, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0860 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO PRESTADOR pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0861",
+  "texto": "61 | evento/pedRegEvento/infPedReg/ | e203202 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO TOMADOR, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0861 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO TOMADOR pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0862",
+  "texto": "63 | evento/pedRegEvento/infPedReg/ | e204203 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO INTERMEDIÁRIO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0862 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO DO INTERMEDIÁRIO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0863",
+  "texto": "65 | evento/pedRegEvento/infPedReg/ | e205204 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO TÁCITA, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0863 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - CONFIRMAÇÃO TÁCITA pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0864",
+  "texto": "68 | evento/pedRegEvento/infPedReg/ | e202205 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO PRESTADOR, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0864 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO PRESTADOR pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1944",
+  "texto": "71 | evento/pedRegEvento/infPedReg/e202205/ | xMotivo | Se o campo cMotivo for igual a \"9, - Outros\", então a descrição do motivo tem preenchimento obrigatório. | Obrig. | Rej. | E1944 | A descrição do motivo é obrigatória caso o tipo do motivo seja \"9 - Outros\". | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0866",
+  "texto": "72 | evento/pedRegEvento/infPedReg/ | e203206 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO TOMADOR, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0866 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO TOMADOR pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1949",
+  "texto": "75 | evento/pedRegEvento/infPedReg/e203206/ | xMotivo | Se o campo cMotivo for igual a \"9, - Outros\", então a descrição do motivo tem preenchimento obrigatório. | Obrig. | Rej. | E1949 | A descrição do motivo é obrigatória caso o tipo do motivo seja \"9 - Outros\". | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E0868",
+  "texto": "76 | evento/pedRegEvento/infPedReg/ | e204207 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO INTERMEDIÁRIO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0868 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - REJEIÇÃO DO INTERMEDIÁRIO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1954",
+  "texto": "79 | evento/pedRegEvento/infPedReg/e204207/ | xMotivo | Se o campo cMotivo for igual a \"9, - Outros\", então a descrição do motivo tem preenchimento obrigatório. | Obrig. | Rej. | E1954 | A descrição do motivo é obrigatória caso o tipo do motivo seja \"9 - Outros\". | - | V | V | V | V | -"
+ },
+ {
+  "cod": "E0870",
+  "texto": "80 | evento/pedRegEvento/infPedReg/ | e205208 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE MANIFESTAÇÃO DE NFS-e - ANULAÇÃO DA REJEIÇÃO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E0870 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE MANIFESTAÇÃO DE NFS-e - ANULAÇÃO DA REJEIÇÃO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1963",
+  "texto": "82 | evento/pedRegEvento/infPedReg/e205208/ | idEvManifRej | O identificador do Evento de Manifestação de NFS-e - Rejeição a ser anulado deve existir no Sistema Nacional NFS-e e corresponder a um identificador de evento de rejeição vinculada à NFS-e informada no evento. | Obrig. | Rej. | E1963 | O identificador do Evento de Manifestação de NFS-e - Rejeição a ser anulado deve existir no Sistema Nacional NFS-e e corresponder a um identificador de evento de rejeição vinculada à NFS-e informada no evento. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1960",
+  "texto": "84 | evento/pedRegEvento/infPedReg/ | e305101 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE CANCELAMENTO DE NFS-e POR OFÍCIO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E1960 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE CANCELAMENTO DE NFS-e POR OFÍCIO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1965",
+  "texto": "89 | evento/pedRegEvento/infPedReg/ | e305102 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE BLOQUEIO DE NFS-e POR OFÍCIO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E1965 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE BLOQUEIO DE NFS-e POR OFÍCIO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1967",
+  "texto": "93 | evento/pedRegEvento/infPedReg/e305102/ | codEvento | O Evento de Bloqueio de NFS-e para um tipo de evento, deve ser rejeitado se já houver um evento de bloqueio de NFS-e para o mesmo tipo do evento que não esteja desbloquedo. Obs: Verificar se para cada evento de bloqueio de NFS-e para um tipo de evento existe o correspondente desbloqueio. Se os possíveis eventos de bloqueios de NFS-e para um tipo de evento não estiverem todos pareados com os seus respectivos desbloqueios, então o eveto de bloqueio de NFS-e do mesmo tipo que está sendo recepcionado pelo Sistema Nacional NFS-e deverá ser rejeitado. | Obrig. | Rej. | E1967 | O sistema não pode recepcionar o Evento de Bloqueio de NFS-e por Ofício para <tipo_evento_bloqueio_NFS-e>, pois já existe o mesmo tipo de evento vinculado à NFS-e sem o Evento de Desbloqueio correpondente. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1970",
+  "texto": "94 | evento/pedRegEvento/infPedReg/ | e305103 | O Sistema Nacional NFS-e deve responder à recepção do EVENTO DE DESBLOQUEIO DE NFS-e POR OFÍCIO, conforme indicado nas linhas da respectiva coluna deste evento na planilha \"RN EVENTOSxEVENTOS - Sistema Nacional NFS-e\". | Obrig. | Rej. | E1970 | O Sistema Nacional NFS-e não pode recepecionar o EVENTO DE DESBLOQUEIO DE NFS-e POR OFÍCIO pois, o evento de <nome_evento_vinculado_a_NFS-e> já está vinculado à NFS-e indicada no evento enviado, impedindo sua recepção. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1976",
+  "texto": "97 | evento/pedRegEvento/infPedReg/e305103/ | idBloqOfic | O evento de Evento de Desbloqueio de NFS-e deve ser rejeitado se o identificador do bloqueio de oficio, indicado neste evento, não existir. | Obrig. | Rej. | E1976 | Não existe o identificador de bloqueio informado neste evento para desbloqueio. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1978",
+  "texto": "98 | O Evento de Desbloqueio de NFS-e deve ser rejeitado se o identificador do bloqueio de oficio, indicado neste evento, já tiver sido desbloqueado. | Obrig. | Rej. | E1978 | O sistema não pode recepcionar o Evento Desbloqueio de NFS-e por Ofício, pois o Evento de Bloqueio indicado já foi desbloqueado. | 1 | V | V | V | V | -"
+ },
+ {
+  "cod": "E1980",
+  "texto": "99 | evento/pedRegEvento/ | Signature | A assinatura do Pedido de Registro de Evento deve ser válida. | Obrig. | Rej. | E1980 | Arquivo enviado com erro na assinatura. | 1 | V | V | X | V | -"
+ },
+ {
+  "cod": "E1983",
+  "texto": "100 | Certificado Digital da assintura inválido: - Validade do Certificado (data início e data fim); - Verifica a Cadeia de Certificação; - Certificado do Transmissor revogado; - LCR indisponível ou inválida. | Obrig. | Rej. | E1983 | Certificado Digital da assinatura inválido. | 1 | V | V | X | V | -"
+ },
+ {
+  "cod": "E1986",
+  "texto": "101 | Certificado Digital da assinatura fora do padrão estabelecido pelo projeto NFS-e: - Versão diferente de 3; - Se informado, Basic Constraint deve ser true (não pode ser Certificado de AC); - KeyUsage não define 'Assinatura Digital' e 'Não Recusa'; - Falta a extensão de CNPJ (OtherName - OID=2.16.76.1.3.3) ou CPF (OtherName - OID=2.16.76.1.3.1); - Certificado Raiz difere da 'ICP-Brasil'. | Obrig. | Rej. | E1986 | Certificado Digital fora do padrão estabelecido. | 1 | V | V | X | V | -"
+ },
+ {
+  "cod": "E1989",
+  "texto": "102 | É obrigatória a existência da assinatura do Pedido de Registro de Evento quando for enviado para Web Service. | Obrig. | Rej. | E1989 | A assinatura é obrigatória quando for enviado para o Web Service. | 1 | V | V | X | V | -"
+ },
+ {
+  "cod": "E1991",
+  "texto": "103 | A assinatura deve ser feita com o certificado digital do emitente do Pedido de Registro de Evento. | Obrig. | Rej. | E1991 | A assinatura deve ser feita com o certificado digital do emitente do Pedido de Registro de Evento. | 1 | V | V | X | V | -"
+ },
+ {
+  "cod": "E2020",
+  "texto": "104 | evento/ | Signature | A assinatura do Evento deve ser válida. | Obrig. | Rej. | E2020 | Arquivo enviado com erro na assinatura. | 1 | X | V | V | V | -"
+ },
+ {
+  "cod": "E2023",
+  "texto": "105 | Certificado Digital da assintura inválido: - Validade do Certificado (data início e data fim); - Verifica a Cadeia de Certificação; - Certificado do Transmissor revogado; - LCR indisponível ou inválida. | Obrig. | Rej. | E2023 | Certificado Digital da assinatura inválido. | 1 | X | V | V | V | -"
+ },
+ {
+  "cod": "E2026",
+  "texto": "106 | Certificado Digital da assinatura fora do padrão estabelecido pelo Sistema Nacional NFS-e: - Versão diferente de 3; - Se informado, Basic Constraint deve ser true (não pode ser Certificado de AC); - KeyUsage não define 'Assinatura Digital' e 'Não Recusa'; - Falta a extensão de CNPJ (OtherName - OID=2.16.76.1.3.3) ou CPF (OtherName - OID=2.16.76.1.3.1); - Certificado Raiz difere da 'ICP-Brasil'. | Obrig. | Rej. | E2026 | Certificado Digital fora do padrão estabelecido. | 1 | X | V | V | V | -"
+ },
+ {
+  "cod": "E2029",
+  "texto": "107 | É obrigatória a existência da assinatura do Evento quando for enviado para Web Service. | Obrig. | Rej. | E2029 | A assinatura é obrigatória quando for enviado paraa API. | 1 | X | V | V | V | -"
+ },
+ {
+  "cod": "E2032",
+  "texto": "108 | A assinatura deve ser feita com o certificado digital do município emissor do Evento. | Obrig. | Rej. | E2032 | A assinatura deve ser feita com o certificado digital do município emissor do Evento. | 1 | X | V | V | V | -"
+ }
+]

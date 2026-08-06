@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "cert": "node scripts/verificar-certificado.js",
     "emitir-teste": "node scripts/emitir-teste.js",
-    "tomador": "node scripts/cadastrar-tomador.js"
+    "tomador": "node scripts/cadastrar-tomador.js",
+    "cancelar": "node scripts/cancelar.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
