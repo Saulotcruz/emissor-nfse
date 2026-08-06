@@ -12,7 +12,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 |---|---|---|
 | 1 | Esqueleto, banco, autenticação, tomadores, configuração, cálculo de tributos | ✅ concluída |
 | 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
-| 3 | `transport` + emissão em Produção Restrita | 🟡 transporte pronto, falta a 1ª emissão real |
+| 3 | `transport` + emissão em Produção Restrita | ✅ concluída — **NFS-e autorizada** |
 | 4 | Webhook da Stripe + idempotência | ⬜ |
 | 5 | Painel React | ⬜ |
 | 6 | Cancelamento e reemissão | ⬜ |

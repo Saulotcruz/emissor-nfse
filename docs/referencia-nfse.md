@@ -116,6 +116,15 @@ Calculado em `apurarTributos().exclusoesBaseIbsCbs`, pronto para quando o grupo 
 | Total das Retenções | zero na configuração atual |
 | Valor Líquido da NFS-e | igual ao valor da operação, já que nada é retido |
 
+## Primeira emissão autorizada
+
+Produção Restrita, 06/08/2026 — DPS série 1 nº 1, NFS-e nº 1, R$ 1,00, tomador MEI.
+Chave de acesso com 50 dígitos, conforme `TSChaveNFSe`.
+
+O caminho completo está provado: mTLS com certificado A1 → XML no schema v1.01 →
+assinatura **RSA-SHA256** com canonicalização exclusiva → GZip+Base64 → SEFIN → NFS-e
+autorizada de forma síncrona. O suporte a SHA1 continua no código, mas não é necessário.
+
 ## Rejeições encontradas na Produção Restrita
 
 Regras que o XSD não expressa e que só aparecem no envio real. Cada uma virou teste.
