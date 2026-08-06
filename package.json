@@ -11,7 +11,8 @@
     "seed": "node server/db/seed-cli.js",
     "test": "cross-env NODE_ENV=test vitest run",
     "build:web": "npm --prefix web run build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "cert": "node scripts/verificar-certificado.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

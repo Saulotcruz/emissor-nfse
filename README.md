@@ -37,6 +37,18 @@ O `seed` lê os dados fiscais do **`.env`** (bloco `EMITENTE_*` e `SERVICO_*`) e
 do emitente e o serviço padrão. Nada de dado fiscal fica no código — este repositório é
 público. Se faltar alguma variável obrigatória, o seed avisa qual e não grava nada.
 
+### Conferindo o certificado A1
+
+Depois de instalar o `.pfx` no servidor e preencher `NFSE_CERT_PATH` e
+`NFSE_CERT_PASSWORD` no `.env`:
+
+```bash
+npm run cert
+```
+
+Mostra titular, validade, fingerprint e alerta se a permissão do arquivo estiver frouxa ou
+se o vencimento estiver perto. Não toca na rede e não emite nada.
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):
