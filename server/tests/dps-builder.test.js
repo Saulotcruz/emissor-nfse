@@ -147,15 +147,30 @@ describe('montarDps', () => {
     expect(toma).toContain('<xNome>OPEN KNOWLEDGE BRASIL</xNome>');
   });
 
-  // Rejeição E0121 da SEFIN: com tpEmit=1 o nome do prestador não pode ir no XML.
-  it('omite o nome do prestador, que a SEFIN preenche a partir do cadastro', () => {
-    const { xml } = montar();
+  // Rejeições E0121 e E0128 da SEFIN: com tpEmit=1 nenhum dado cadastral do
+  // prestador pode ir no XML — ela usa o cadastro dela.
+  it('envia do prestador apenas CNPJ, IM e regime tributário', () => {
+    const { xml } = montar({
+      emitente: { telefone: '3130000000', email: 'x@example.com' },
+    });
     const prest = xml.slice(xml.indexOf('<prest>'), xml.indexOf('</prest>'));
-    expect(prest).not.toContain('<xNome>');
+
     expect(prest).toContain('<CNPJ>11222333000181</CNPJ>');
-    // O tomador continua levando o nome — a regra vale só para o prestador.
+    expect(prest).toContain('<opSimpNac>1</opSimpNac>');
+    expect(prest).toContain('<regEspTrib>0</regEspTrib>');
+
+    expect(prest).not.toContain('<xNome>');   // E0121
+    expect(prest).not.toContain('<end>');     // E0128
+    expect(prest).not.toContain('<fone>');
+    expect(prest).not.toContain('<email>');
+  });
+
+  it('o tomador continua levando nome e endereço — a regra é só do prestador', () => {
+    const { xml } = montar();
     const toma = xml.slice(xml.indexOf('<toma>'), xml.indexOf('</toma>'));
     expect(toma).toContain('<xNome>OPEN KNOWLEDGE BRASIL</xNome>');
+    expect(toma).toContain('<end>');
+    expect(toma).toContain('<cMun>3550308</cMun>');
   });
 
   it('escapa a descrição do serviço', () => {

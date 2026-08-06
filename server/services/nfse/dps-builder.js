@@ -90,23 +90,28 @@ export function montarDps({ emitente, tomador, servico, nota }) {
 }
 
 /**
- * Quando o emitente da DPS é o próprio prestador (tpEmit=1), a SEFIN rejeita o
- * nome no XML — ela usa o que está no cadastro:
+ * Quando o emitente da DPS é o próprio prestador (tpEmit=1), a SEFIN recusa
+ * qualquer dado cadastral no XML — ela usa o que já tem no cadastro. Rejeições
+ * observadas na Produção Restrita:
  *
- *   E0121 — O nome ou razão social do prestador não deve ser informado quando
- *           o emitente da DPS for o próprio prestador.
+ *   E0121 — nome/razão social do prestador não deve ser informado
+ *   E0128 — endereço nacional do prestador não deve ser informado
  *
- * Por isso o `xNome` só vai quando a DPS é emitida por tomador ou intermediário.
- * O nome aparece normalmente no DANFSe: quem preenche é a SEFIN.
+ * As duas são a mesma regra aplicada a campos diferentes, então enviamos apenas
+ * o que identifica fiscalmente (CNPJ, inscrição municipal) e o regime tributário,
+ * que é obrigatório. Nome, endereço, telefone e e-mail ficam de fora — e o DANFSe
+ * continua mostrando todos eles, preenchidos pela SEFIN.
  */
 function montarPrestador(emitente, { emitidaPeloPrestador = true } = {}) {
+  const cadastral = emitidaPeloPrestador
+    ? ['', '', '']
+    : [montarEndereco(emitente), tag('fone', apenasDigitos(emitente.telefone) || null), tag('email', emitente.email)];
+
   return grupo('prest', [
     tag('CNPJ', apenasDigitos(emitente.cnpj)),
     tag('IM', emitente.inscricao_municipal),
     emitidaPeloPrestador ? '' : tag('xNome', emitente.razao_social),
-    montarEndereco(emitente),
-    tag('fone', apenasDigitos(emitente.telefone) || null),
-    tag('email', emitente.email),
+    ...cadastral,
     grupo('regTrib', [
       tag(
         'opSimpNac',

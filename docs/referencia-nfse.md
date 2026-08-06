@@ -122,7 +122,23 @@ Regras que o XSD não expressa e que só aparecem no envio real. Cada uma virou 
 
 | Código | Regra | Como o builder trata |
 |---|---|---|
-| `E0121` | O nome/razão social do **prestador** não pode ser informado quando o emitente da DPS é o próprio prestador (`tpEmit=1`) | `xNome` é omitido do grupo `prest`; a SEFIN preenche a partir do cadastro, e o nome aparece normalmente no DANFSe |
+| `E0121` | Nome/razão social do **prestador** não pode ser informado quando o emitente da DPS é o próprio prestador (`tpEmit=1`) | `xNome` omitido do grupo `prest` |
+| `E0128` | Endereço nacional do **prestador** não pode ser informado, pelo mesmo motivo | grupo `end` omitido do `prest` |
+
+As duas são a mesma regra em campos diferentes: **com `tpEmit=1` a SEFIN não aceita dado
+cadastral do prestador**, porque usa o cadastro dela. O builder envia do `prest` apenas o que
+identifica fiscalmente — CNPJ, inscrição municipal e o `regTrib`, que é obrigatório. Telefone
+e e-mail também ficam de fora, por precaução baseada no mesmo padrão.
+
+O grupo `prest` resultante:
+
+```xml
+<prest><CNPJ>…</CNPJ><regTrib><opSimpNac>1</opSimpNac><regEspTrib>0</regEspTrib></regTrib></prest>
+```
+
+Nada disso empobrece o documento: o DANFSe segue mostrando nome, endereço, telefone e e-mail
+do prestador — preenchidos pela SEFIN. A regra vale só para o prestador; o **tomador** continua
+levando nome e endereço no XML.
 
 Confirmado no mesmo envio: **assinatura RSA-SHA256 com canonicalização exclusiva é aceita** —
 a rejeição veio da camada de negócio, depois da validação de assinatura. O suporte a SHA1
