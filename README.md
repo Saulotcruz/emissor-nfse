@@ -25,6 +25,17 @@ Mesmo padrão do `mini-crm/CRM`, de propósito: o servidor já roda essa combina
 
 ## Subindo o ambiente
 
+Crie a database antes — o `migrate` cria as tabelas, não a database:
+
+```sql
+CREATE DATABASE nfse_emissor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'nfse'@'localhost' IDENTIFIED BY 'uma-senha-forte';
+GRANT ALL PRIVILEGES ON nfse_emissor.* TO 'nfse'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Depois:
+
 ```bash
 cp .env.example .env        # preencha DB_*, SESSION_SECRET
 npm install
