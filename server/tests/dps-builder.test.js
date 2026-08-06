@@ -147,6 +147,17 @@ describe('montarDps', () => {
     expect(toma).toContain('<xNome>OPEN KNOWLEDGE BRASIL</xNome>');
   });
 
+  // Rejeição E0121 da SEFIN: com tpEmit=1 o nome do prestador não pode ir no XML.
+  it('omite o nome do prestador, que a SEFIN preenche a partir do cadastro', () => {
+    const { xml } = montar();
+    const prest = xml.slice(xml.indexOf('<prest>'), xml.indexOf('</prest>'));
+    expect(prest).not.toContain('<xNome>');
+    expect(prest).toContain('<CNPJ>11222333000181</CNPJ>');
+    // O tomador continua levando o nome — a regra vale só para o prestador.
+    const toma = xml.slice(xml.indexOf('<toma>'), xml.indexOf('</toma>'));
+    expect(toma).toContain('<xNome>OPEN KNOWLEDGE BRASIL</xNome>');
+  });
+
   it('escapa a descrição do serviço', () => {
     const { xml } = montar({ nota: { descricaoServico: 'Plano "A" & cia <teste>' } });
     expect(xml).toContain('<xDescServ>Plano &quot;A&quot; &amp; cia &lt;teste&gt;</xDescServ>');

@@ -74,7 +74,7 @@ export function montarDps({ emitente, tomador, servico, nota }) {
       tag('dCompet', dataSimples(nota.competencia ?? dhEmi)),
       tag('tpEmit', TP_EMIT.prestador),
       tag('cLocEmi', emitente.codigo_municipio),
-      montarPrestador(emitente),
+      montarPrestador(emitente, { emitidaPeloPrestador: true }),
       montarTomador(tomador),
       montarServico({ emitente, servico, nota }),
       montarValores({ servico, tributos }),
@@ -89,11 +89,21 @@ export function montarDps({ emitente, tomador, servico, nota }) {
   return { xml, id, tributos };
 }
 
-function montarPrestador(emitente) {
+/**
+ * Quando o emitente da DPS é o próprio prestador (tpEmit=1), a SEFIN rejeita o
+ * nome no XML — ela usa o que está no cadastro:
+ *
+ *   E0121 — O nome ou razão social do prestador não deve ser informado quando
+ *           o emitente da DPS for o próprio prestador.
+ *
+ * Por isso o `xNome` só vai quando a DPS é emitida por tomador ou intermediário.
+ * O nome aparece normalmente no DANFSe: quem preenche é a SEFIN.
+ */
+function montarPrestador(emitente, { emitidaPeloPrestador = true } = {}) {
   return grupo('prest', [
     tag('CNPJ', apenasDigitos(emitente.cnpj)),
     tag('IM', emitente.inscricao_municipal),
-    tag('xNome', emitente.razao_social),
+    emitidaPeloPrestador ? '' : tag('xNome', emitente.razao_social),
     montarEndereco(emitente),
     tag('fone', apenasDigitos(emitente.telefone) || null),
     tag('email', emitente.email),

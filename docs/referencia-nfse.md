@@ -116,6 +116,25 @@ Calculado em `apurarTributos().exclusoesBaseIbsCbs`, pronto para quando o grupo 
 | Total das Retenções | zero na configuração atual |
 | Valor Líquido da NFS-e | igual ao valor da operação, já que nada é retido |
 
+## Rejeições encontradas na Produção Restrita
+
+Regras que o XSD não expressa e que só aparecem no envio real. Cada uma virou teste.
+
+| Código | Regra | Como o builder trata |
+|---|---|---|
+| `E0121` | O nome/razão social do **prestador** não pode ser informado quando o emitente da DPS é o próprio prestador (`tpEmit=1`) | `xNome` é omitido do grupo `prest`; a SEFIN preenche a partir do cadastro, e o nome aparece normalmente no DANFSe |
+
+Confirmado no mesmo envio: **assinatura RSA-SHA256 com canonicalização exclusiva é aceita** —
+a rejeição veio da camada de negócio, depois da validação de assinatura. O suporte a SHA1
+continua no código como alternativa, mas não é necessário.
+
+O corpo da rejeição vem assim, e é o que o `errors.js` desmonta:
+
+```json
+{"tipoAmbiente":2,"versaoAplicativo":"SefinNacional_1.6.0",
+ "idDPS":"DPS...","erros":[{"Codigo":"E0121","Descricao":"..."}]}
+```
+
 ## Conferência numérica
 
 Os valores da nota real viraram teste de regressão em `server/tests/calculo.test.js`:
