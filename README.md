@@ -12,7 +12,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 |---|---|---|
 | 1 | Esqueleto, banco, autenticação, tomadores, configuração, cálculo de tributos | ✅ concluída |
 | 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
-| 3 | `transport` + emissão em Produção Restrita | ⬜ |
+| 3 | `transport` + emissão em Produção Restrita | 🟡 transporte pronto, falta a 1ª emissão real |
 | 4 | Webhook da Stripe + idempotência | ⬜ |
 | 5 | Painel React | ⬜ |
 | 6 | Cancelamento e reemissão | ⬜ |
@@ -99,6 +99,8 @@ server/
       xml.js              escape, decimais e datas no formato do XSD
       dps-builder.js      objeto de domínio -> XML da DPS
       signer.js           XMLDSig sobre infDPS (xml-crypto + node-forge)
+      transport.js        mTLS, gzip+base64, POST/GET/HEAD e eventos
+      errors.js           rejeição x transporte x certificado
 schemas/1.01/             XSDs oficiais (gov.br), sem modificação
   tests/
 ```
