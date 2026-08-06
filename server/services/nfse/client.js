@@ -247,13 +247,14 @@ export async function cancelarNota(notaId, { motivo, codigoMotivo = MOTIVO_CANCE
 
   try {
     const retorno = await client.enviarEvento(nota.chave_acesso, assinado);
+    // Guarda o XML do evento registrado — é o comprovante do cancelamento.
     await pool.query('UPDATE nota_evento SET status = ?, retorno_xml = ? WHERE id = ?', [
       'aceito',
-      JSON.stringify(retorno).slice(0, 60000),
+      retorno.eventoXml ?? JSON.stringify(retorno.corpo)?.slice(0, 60000) ?? null,
       r.insertId,
     ]);
     await pool.query('UPDATE nota SET status = ? WHERE id = ?', ['cancelada', notaId]);
-    return { jaCancelada: false, idPedido: id, retorno };
+    return { jaCancelada: false, idPedido: id, eventoXml: retorno.eventoXml, retorno: retorno.corpo };
   } catch (e) {
     await pool.query('UPDATE nota_evento SET status = ?, erro_mensagem = ? WHERE id = ?', [
       'rejeitado',

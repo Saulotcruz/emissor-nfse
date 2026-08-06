@@ -38,10 +38,7 @@ export async function descomprimir(base64) {
   return (await gunzip(Buffer.from(base64, 'base64'))).toString('utf8');
 }
 
-/**
- * Cliente da SEFIN. O agente HTTPS carrega o .pfx direto — o Node aceita PKCS#12
- * sem conversão, ao contrário do xml-crypto, que precisa de PEM.
- */
+/** Cliente da SEFIN Nacional. */
 export class SefinClient {
   /**
    * Recebe chave e certificado já em PEM — não o .pfx.
@@ -109,13 +106,24 @@ export class SefinClient {
     return { nfseXml: b64 ? await descomprimir(b64) : null, corpo: resp.corpo };
   }
 
-  /** Registra um evento na nota — e101101 é o cancelamento. */
+  /**
+   * Registra um evento na nota — e101101 é o cancelamento.
+   *
+   * A resposta traz `eventoXmlGZipB64`: o XML do evento registrado, que é o
+   * comprovante oficial. Descomprimimos para guardar legível, do mesmo jeito
+   * que fazemos com o XML da NFS-e.
+   */
   async enviarEvento(chaveAcesso, xmlEventoAssinado) {
     const pedidoRegistroEventoXmlGZipB64 = await comprimir(xmlEventoAssinado);
     const resp = await this.requisitar('POST', `${PREFIXO}/nfse/${chaveAcesso}/eventos`, {
       pedidoRegistroEventoXmlGZipB64,
     });
-    return resp.corpo;
+
+    const b64 = resp.corpo?.eventoXmlGZipB64 ?? resp.corpo?.EventoXmlGZipB64 ?? null;
+    return {
+      eventoXml: b64 ? await descomprimir(b64) : null,
+      corpo: resp.corpo,
+    };
   }
 
   async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false } = {}) {

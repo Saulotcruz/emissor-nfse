@@ -181,13 +181,27 @@ describe('consultas', () => {
 describe('eventos', () => {
   it('envia o evento de cancelamento comprimido, na rota da chave', async () => {
     const xmlEvento = '<pedRegEvento><infPedReg/></pedRegEvento>';
-    resposta = { status: 200, corpo: { status: 'REGISTRADO' } };
-    await client.enviarEvento(CHAVE, xmlEvento);
+    const xmlRegistrado = '<evento versao="1.01"><infEvento/></evento>';
+    resposta = {
+      status: 200,
+      corpo: { eventoXmlGZipB64: zlib.gzipSync(xmlRegistrado).toString('base64') },
+    };
+    const r = await client.enviarEvento(CHAVE, xmlEvento);
 
     const req = fake.requisicoes.at(-1);
     expect(req.metodo).toBe('POST');
     expect(req.caminho).toBe(`/SefinNacional/nfse/${CHAVE}/eventos`);
     expect(await descomprimir(req.corpo.pedidoRegistroEventoXmlGZipB64)).toBe(xmlEvento);
+
+    // A resposta traz o XML do evento registrado: é o comprovante do cancelamento.
+    expect(r.eventoXml).toBe(xmlRegistrado);
+  });
+
+  it('tolera resposta de evento sem XML', async () => {
+    resposta = { status: 200, corpo: { status: 'REGISTRADO' } };
+    const r = await client.enviarEvento(CHAVE, '<pedRegEvento/>');
+    expect(r.eventoXml).toBeNull();
+    expect(r.corpo.status).toBe('REGISTRADO');
   });
 });
 
