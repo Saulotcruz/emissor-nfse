@@ -40,13 +40,22 @@ público. Se faltar alguma variável obrigatória, o seed avisa qual e não grav
 ### No servidor
 
 O repositório não versiona `node_modules`. Depois de clonar ou de um `git pull` que mexa em
-`package.json`, instale as dependências com as versões travadas no lock:
+`package.json`, instale as dependências com as versões travadas no lock — **sem as de
+desenvolvimento**:
 
 ```bash
-npm ci
+npm ci --omit=dev
 ```
 
 Sem isso qualquer script falha com `ERR_MODULE_NOT_FOUND`.
+
+`--omit=dev` deixa de fora 147 pacotes que só servem para teste e lint (vitest, vite, esbuild).
+Além de instalar mais rápido, tira do servidor o único ponto onde o `npm audit` acusa
+vulnerabilidades — todas na cadeia do Vitest, e todas relacionadas a servidor de
+desenvolvimento, que não roda em produção. As dependências de runtime estão limpas.
+
+Em desenvolvimento, o `npm ci` normal continua sendo o certo, porque os testes precisam do
+vitest.
 
 ### Conferindo o certificado A1
 
