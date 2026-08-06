@@ -12,7 +12,8 @@
     "test": "cross-env NODE_ENV=test vitest run",
     "build:web": "npm --prefix web run build",
     "lint": "eslint .",
-    "cert": "node scripts/verificar-certificado.js"
+    "cert": "node scripts/verificar-certificado.js",
+    "emitir-teste": "node scripts/emitir-teste.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

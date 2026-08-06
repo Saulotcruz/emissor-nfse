@@ -69,6 +69,18 @@ npm run cert
 Mostra titular, validade, fingerprint e alerta se a permissão do arquivo estiver frouxa ou
 se o vencimento estiver perto. Não toca na rede e não emite nada.
 
+### Primeira emissão de teste
+
+Com o certificado no lugar e um tomador cadastrado:
+
+```bash
+npm run emitir-teste -- --tomador 19131243000197 --valor 1.00 --descricao "Teste"
+```
+
+Use `--dry-run` para ver o XML assinado sem enviar nada (não consome número de DPS) e
+`--sha1` para trocar o algoritmo da assinatura. O ambiente vem de `emitente.ambiente`; em
+produção o script pede confirmação explícita antes de emitir.
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):
@@ -99,6 +111,7 @@ server/
       xml.js              escape, decimais e datas no formato do XSD
       dps-builder.js      objeto de domínio -> XML da DPS
       signer.js           XMLDSig sobre infDPS (xml-crypto + node-forge)
+      client.js           fachada: reserva, monta, assina, envia e persiste
       transport.js        mTLS, gzip+base64, POST/GET/HEAD e eventos
       errors.js           rejeição x transporte x certificado
 schemas/1.01/             XSDs oficiais (gov.br), sem modificação
