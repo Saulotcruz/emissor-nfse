@@ -112,6 +112,9 @@ export async function subirSefinFake(responder) {
     baseUrl: `https://127.0.0.1:${porta}`,
     pfx,
     senha: 'senha123',
+    // O cliente da SEFIN recebe PEM, não .pfx — ver comentário em transport.js.
+    chavePem: cliente.keyPem,
+    certPem: cliente.certPem,
     caPem: ca.certPem,
     requisicoes,
     fechar: () => new Promise((resolve) => server.close(resolve)),

@@ -56,15 +56,20 @@ export function lerCertificado({ caminho, buffer, senha }) {
   const bagChave =
     p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0] ??
     p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag]?.[0];
-  const bagCert = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag]?.[0];
+  const bagsCert = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] ?? [];
 
   if (!bagChave?.key) throw new Error('Chave privada não encontrada no certificado');
-  if (!bagCert?.cert) throw new Error('Certificado não encontrado no arquivo');
+  if (!bagsCert.length) throw new Error('Certificado não encontrado no arquivo');
 
-  const cert = bagCert.cert;
+  // O primeiro bag é o certificado do titular; os demais, quando existem, são
+  // os intermediários da cadeia ICP-Brasil. O mTLS quer a cadeia completa.
+  const cert = bagsCert[0].cert;
+  const cadeiaPem = bagsCert.map((b) => forge.pki.certificateToPem(b.cert)).join('');
+
   return {
     privateKeyPem: forge.pki.privateKeyToPem(bagChave.key),
     certificatePem: forge.pki.certificateToPem(cert),
+    cadeiaPem,
     // Base64 puro do DER, que é o formato do <X509Certificate> no XMLDSig.
     certificateBase64: forge.util
       .encode64(forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes())

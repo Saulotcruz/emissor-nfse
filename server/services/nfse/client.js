@@ -96,9 +96,17 @@ export function criarClienteSefin(emitente) {
   if (!senha) throw new Error('NFSE_CERT_PASSWORD não definido');
 
   const pfx = fs.readFileSync(caminho);
+  const certificado = lerCertificado({ buffer: pfx, senha });
+
   return {
-    client: new SefinClient({ ambiente: emitente.ambiente, pfx, senha }),
-    certificado: lerCertificado({ buffer: pfx, senha }),
+    // Vai o PEM, não o .pfx: o OpenSSL 3 recusa o PKCS#12 da ICP-Brasil.
+    // A cadeia completa (titular + intermediários) segue no `cert`.
+    client: new SefinClient({
+      ambiente: emitente.ambiente,
+      chavePem: certificado.privateKeyPem,
+      certPem: certificado.cadeiaPem ?? certificado.certificatePem,
+    }),
+    certificado,
   };
 }
 

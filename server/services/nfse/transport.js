@@ -43,13 +43,23 @@ export async function descomprimir(base64) {
  * sem conversão, ao contrário do xml-crypto, que precisa de PEM.
  */
 export class SefinClient {
-  constructor({ ambiente = 'producao_restrita', pfx, senha, timeout = TIMEOUT_PADRAO, baseUrl } = {}) {
-    if (!pfx) throw new Error('Certificado (.pfx) é obrigatório para falar com a SEFIN');
+  /**
+   * Recebe chave e certificado já em PEM — não o .pfx.
+   *
+   * Motivo: o Node passa o `pfx` direto ao OpenSSL, e o OpenSSL 3 recusa os
+   * algoritmos legados usados nos arquivos A1 da ICP-Brasil com
+   * "Unsupported PKCS12 PFX data". O node-forge lê o mesmo arquivo sem
+   * problema (é JS puro), então extraímos o PEM com ele e entregamos pronto.
+   */
+  constructor({ ambiente = 'producao_restrita', chavePem, certPem, timeout = TIMEOUT_PADRAO, baseUrl } = {}) {
+    if (!chavePem || !certPem) {
+      throw new Error('Chave e certificado em PEM são obrigatórios para falar com a SEFIN');
+    }
     this.baseUrl = baseUrl ?? baseUrlDoAmbiente(ambiente);
     this.timeout = timeout;
     this.agent = new https.Agent({
-      pfx,
-      passphrase: senha,
+      key: chavePem,
+      cert: certPem,
       keepAlive: true,
       // Sempre validar a cadeia do servidor. Desligar isso abriria espaço para
       // um intermediário ver e alterar documento fiscal assinado.

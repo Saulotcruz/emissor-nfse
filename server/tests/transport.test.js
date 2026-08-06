@@ -17,8 +17,8 @@ beforeAll(async () => {
   fake = await subirSefinFake(() => resposta);
   client = new SefinClient({
     baseUrl: fake.baseUrl,
-    pfx: fake.pfx,
-    senha: fake.senha,
+    chavePem: fake.chavePem,
+    certPem: fake.certPem,
     timeout: 5000,
   });
   // Confia na CA do servidor falso sem desligar a verificação do cliente.
@@ -61,8 +61,10 @@ describe('ambientes', () => {
     expect(() => baseUrlDoAmbiente('homologacao')).toThrow(/desconhecido/);
   });
 
-  it('exige certificado na construção do cliente', () => {
-    expect(() => new SefinClient({ ambiente: 'producao_restrita' })).toThrow(/obrigatório/);
+  it('exige chave e certificado em PEM na construção do cliente', () => {
+    expect(() => new SefinClient({ ambiente: 'producao_restrita' })).toThrow(/PEM são obrigatórios/);
+    // Passar o .pfx não serve: o OpenSSL 3 recusa o PKCS#12 da ICP-Brasil.
+    expect(() => new SefinClient({ ambiente: 'producao_restrita', pfx: fake.pfx })).toThrow(/PEM/);
   });
 });
 
@@ -191,12 +193,12 @@ describe('eventos', () => {
 
 describe('segurança do transporte', () => {
   it('mantém a verificação do certificado do servidor ligada', () => {
-    const c = new SefinClient({ ambiente: 'producao', pfx: fake.pfx, senha: fake.senha });
+    const c = new SefinClient({ ambiente: 'producao', chavePem: fake.chavePem, certPem: fake.certPem });
     expect(c.agent.options.rejectUnauthorized).toBe(true);
   });
 
   it('falha ao falar com servidor cuja cadeia não confia', async () => {
-    const semCa = new SefinClient({ baseUrl: fake.baseUrl, pfx: fake.pfx, senha: fake.senha, timeout: 5000 });
+    const semCa = new SefinClient({ baseUrl: fake.baseUrl, chavePem: fake.chavePem, certPem: fake.certPem, timeout: 5000 });
     resposta = { status: 200, corpo: {} };
     await expect(semCa.consultarNfse(CHAVE)).rejects.toThrow();
   });

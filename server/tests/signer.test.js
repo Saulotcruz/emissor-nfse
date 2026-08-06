@@ -59,6 +59,20 @@ describe('lerCertificado', () => {
     expect(certificado.certificateBase64.length).toBeGreaterThan(100);
   });
 
+  // O mTLS precisa do PEM, não do .pfx: o OpenSSL 3 recusa o PKCS#12 da
+  // ICP-Brasil com "Unsupported PKCS12 PFX data", enquanto o node-forge lê.
+  it('expõe a cadeia em PEM para o mTLS', () => {
+    expect(certificado.cadeiaPem).toMatch(/^-----BEGIN CERTIFICATE-----/);
+    expect(certificado.cadeiaPem).toContain(certificado.certificatePem.trim());
+  });
+
+  it('a chave e a cadeia extraídas são aceitas pelo TLS do Node', async () => {
+    const https = await import('node:https');
+    expect(
+      () => new https.Agent({ key: certificado.privateKeyPem, cert: certificado.cadeiaPem })
+    ).not.toThrow();
+  });
+
   it('traduz senha errada em mensagem legível', () => {
     expect(() => lerCertificado({ buffer: pfx.buffer, senha: 'errada' }))
       .toThrow(/Senha do certificado incorreta/);
