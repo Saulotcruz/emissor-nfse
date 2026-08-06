@@ -77,7 +77,7 @@ export function montarDps({ emitente, tomador, servico, nota }) {
       montarPrestador(emitente, { emitidaPeloPrestador: true }),
       montarTomador(tomador),
       montarServico({ emitente, servico, nota }),
-      montarValores({ servico, tributos }),
+      montarValores({ emitente, servico, tributos }),
     ],
     { atributos: ` Id="${id}"` }
   );
@@ -169,8 +169,21 @@ function montarServico({ emitente, servico, nota }) {
   ]);
 }
 
-function montarValores({ servico, tributos }) {
+function montarValores({ emitente, servico, tributos }) {
   const temDeducao = tributos.deducoes > 0;
+  const optanteSimples = Boolean(emitente.optante_simples_nacional);
+
+  /**
+   * E0617 — não pode informar `pAliq` quando o prestador é NÃO optante do
+   * Simples e o convênio do município de incidência está ATIVO: nesse caso a
+   * alíquota vem da tabela do município.
+   * E0619 — mas `pAliq` é OBRIGATÓRIO se o convênio NÃO estiver ativo.
+   *
+   * Como a situação do convênio é do município e não temos como saber daqui,
+   * ela é configurável (`emitente.convenio_municipio_ativo`, padrão ativo).
+   */
+  const convenioAtivo = emitente.convenio_municipio_ativo !== 0;
+  const informarAliquota = optanteSimples || !convenioAtivo;
 
   return grupo('valores', [
     grupo('vServPrest', [tag('vServ', dec(tributos.valorServico))]),
@@ -179,11 +192,30 @@ function montarValores({ servico, tributos }) {
       grupo('tribMun', [
         tag('tribISSQN', TRIB_ISSQN[servico.tipo_tributacao_issqn] ?? TRIB_ISSQN.operacao_tributavel),
         tag('tpRetISSQN', servico.iss_retido ? TP_RET_ISSQN.retido_tomador : TP_RET_ISSQN.nao_retido),
-        tag('pAliq', dec(servico.aliquota_iss)),
+        informarAliquota ? tag('pAliq', dec(servico.aliquota_iss)) : '',
       ]),
       montarTribFederal({ servico, tributos }),
-      // indTotTrib=0: o XSD é explícito que não se deve estimar total de tributos.
-      grupo('totTrib', [tag('indTotTrib', '0')]),
+      montarTotalTributos({ optanteSimples, tributos }),
+    ]),
+  ]);
+}
+
+/**
+ * O grupo `totTrib` é obrigatório e aceita um entre vTotTrib, pTotTrib,
+ * indTotTrib e pTotTribSN.
+ *
+ * E0713 — para prestador NÃO optante do Simples, `indTotTrib` e `pTotTribSN`
+ * nunca podem ser informados. Sobra declarar os valores: informamos o que a
+ * própria nota apura — municipal é o ISS, federal é PIS + COFINS.
+ */
+function montarTotalTributos({ optanteSimples, tributos }) {
+  if (optanteSimples) return grupo('totTrib', [tag('indTotTrib', '0')]);
+
+  return grupo('totTrib', [
+    grupo('vTotTrib', [
+      tag('vTotTribFed', dec(tributos.valorPis + tributos.valorCofins)),
+      tag('vTotTribEst', dec(0)),
+      tag('vTotTribMun', dec(tributos.valorIss)),
     ]),
   ]);
 }

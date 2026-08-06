@@ -121,10 +121,42 @@ describe('montarDps', () => {
   it('leva os tributos apurados, conferidos contra a nota real', () => {
     const { xml, tributos } = montar();
     expect(xml).toContain('<vServ>148.83</vServ>');
-    expect(xml).toContain('<pAliq>2.00</pAliq>');
     expect(xml).toContain('<vPis>0.97</vPis>');
     expect(xml).toContain('<vCofins>4.46</vCofins>');
     expect(tributos.valorIss).toBe(2.98);
+  });
+
+  // E0617: não optante do Simples + convênio do município ativo => a alíquota
+  // vem da tabela do município e não pode ir na DPS.
+  it('omite pAliq para não optante com convênio municipal ativo', () => {
+    const { xml } = montar();
+    expect(xml).not.toContain('<pAliq>');
+  });
+
+  // E0619: com o convênio inativo, aí sim a alíquota passa a ser obrigatória.
+  it('informa pAliq quando o convênio do município não está ativo', () => {
+    const { xml } = montar({ emitente: { convenio_municipio_ativo: 0 } });
+    expect(xml).toContain('<pAliq>2.00</pAliq>');
+  });
+
+  it('informa pAliq para optante do Simples', () => {
+    const { xml } = montar({ emitente: { optante_simples_nacional: 1 } });
+    expect(xml).toContain('<pAliq>2.00</pAliq>');
+  });
+
+  // E0713: para não optante, indTotTrib e pTotTribSN nunca podem ser informados.
+  it('declara os valores em vTotTrib para não optante, nunca indTotTrib', () => {
+    const { xml } = montar();
+    expect(xml).not.toContain('<indTotTrib>');
+    expect(xml).toContain('<vTotTribFed>5.43</vTotTribFed>');  // PIS + COFINS
+    expect(xml).toContain('<vTotTribEst>0.00</vTotTribEst>');
+    expect(xml).toContain('<vTotTribMun>2.98</vTotTribMun>');  // ISS
+  });
+
+  it('usa indTotTrib para optante do Simples', () => {
+    const { xml } = montar({ emitente: { optante_simples_nacional: 1 } });
+    expect(xml).toContain('<indTotTrib>0</indTotTrib>');
+    expect(xml).not.toContain('<vTotTrib>');
   });
 
   it('usa CST 01 e tpRetPisCofins 0 para operação tributável sem retenção', () => {

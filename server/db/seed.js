@@ -32,6 +32,9 @@ export function emitenteDoAmbiente(env = process.env) {
     uf: env.EMITENTE_UF || null,
     email: env.EMITENTE_EMAIL || null,
     telefone: apenasDigitos(env.EMITENTE_TELEFONE) || null,
+    // Convênio ativo => a alíquota do ISS vem da tabela do município e não
+    // pode ir na DPS (E0617). Desligue só se a SEFIN cobrar pAliq (E0619).
+    convenio_municipio_ativo: env.EMITENTE_CONVENIO_ATIVO === '0' ? 0 : 1,
     // Faixa 1-49999 é a reservada para emissão via webservice.
     serie_dps: env.EMITENTE_SERIE_DPS || '1',
     ambiente: env.NFSE_AMBIENTE === 'producao' ? 'producao' : 'producao_restrita',

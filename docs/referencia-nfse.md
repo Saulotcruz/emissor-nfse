@@ -124,6 +124,9 @@ Regras que o XSD não expressa e que só aparecem no envio real. Cada uma virou 
 |---|---|---|
 | `E0121` | Nome/razão social do **prestador** não pode ser informado quando o emitente da DPS é o próprio prestador (`tpEmit=1`) | `xNome` omitido do grupo `prest` |
 | `E0128` | Endereço nacional do **prestador** não pode ser informado, pelo mesmo motivo | grupo `end` omitido do `prest` |
+| `E0617` | `pAliq` **não** pode ser informado quando o prestador é não optante do Simples **e** o convênio do município está ativo | alíquota omitida do `tribMun` |
+| `E0619` | `pAliq` **é obrigatório** se o convênio do município **não** estiver ativo | `emitente.convenio_municipio_ativo = 0` volta a enviar a alíquota |
+| `E0713` | `indTotTrib` e `pTotTribSN` nunca podem ser informados para não optante do Simples | `totTrib` usa `vTotTrib` com os valores apurados |
 
 As duas são a mesma regra em campos diferentes: **com `tpEmit=1` a SEFIN não aceita dado
 cadastral do prestador**, porque usa o cadastro dela. O builder envia do `prest` apenas o que
@@ -143,6 +146,15 @@ levando nome e endereço no XML.
 Confirmado no mesmo envio: **assinatura RSA-SHA256 com canonicalização exclusiva é aceita** —
 a rejeição veio da camada de negócio, depois da validação de assinatura. O suporte a SHA1
 continua no código como alternativa, mas não é necessário.
+
+### De onde vieram
+
+Depois das duas primeiras rejeições, as demais foram encontradas **antes de enviar**, lendo o
+anexo de leiaute oficial (`anexo_i-sefin_adn-dps_nfse`), que traz 429 regras com código de erro.
+As 224 que tocam campos emitidos por este sistema estão em `docs/regras-sefin.json`.
+
+Vale consultar esse arquivo antes de mexer no builder — muita regra é condicional e depende de
+Simples Nacional, convênio do município e tipo de tributação.
 
 O corpo da rejeição vem assim, e é o que o `errors.js` desmonta:
 

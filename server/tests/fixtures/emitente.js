@@ -23,6 +23,7 @@ export const EMITENTE_FIXTURE = {
   uf: 'MG',
   email: 'teste@example.com',
   telefone: '3130000000',
+  convenio_municipio_ativo: 1,
   serie_dps: '1',
   ambiente: 'producao_restrita',
 };

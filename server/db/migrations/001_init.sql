@@ -32,6 +32,8 @@ CREATE TABLE emitente (
   serie_dps VARCHAR(5) NOT NULL DEFAULT '1' COMMENT 'Faixa 1-49999 = emissao via webservice',
   proximo_numero_dps BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ambiente ENUM('producao_restrita','producao') NOT NULL DEFAULT 'producao_restrita',
+  convenio_municipio_ativo TINYINT(1) NOT NULL DEFAULT 1
+    COMMENT 'Convenio do municipio ativo no SNNFSe: define se pAliq vai na DPS (E0617/E0619)',
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_emitente_cnpj (cnpj)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
