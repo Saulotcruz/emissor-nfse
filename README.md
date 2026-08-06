@@ -80,6 +80,16 @@ npm run cert
 Mostra titular, validade, fingerprint e alerta se a permissão do arquivo estiver frouxa ou
 se o vencimento estiver perto. Não toca na rede e não emite nada.
 
+### Cadastrando um tomador
+
+```bash
+npm run tomador -- --cnpj 19131243000197
+```
+
+Busca razão social e endereço na BrasilAPI. Como ela devolve o código **SIAFI** do município
+e a DPS exige o **IBGE**, passe `--ibge 3550308` se quiser o endereço do tomador na nota —
+sem ele o grupo de endereço é omitido, o que o schema aceita.
+
 ### Primeira emissão de teste
 
 Com o certificado no lugar e um tomador cadastrado:

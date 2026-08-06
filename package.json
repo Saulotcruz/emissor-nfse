@@ -13,7 +13,8 @@
     "build:web": "npm --prefix web run build",
     "lint": "eslint .",
     "cert": "node scripts/verificar-certificado.js",
-    "emitir-teste": "node scripts/emitir-teste.js"
+    "emitir-teste": "node scripts/emitir-teste.js",
+    "tomador": "node scripts/cadastrar-tomador.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
