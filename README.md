@@ -13,7 +13,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 | 1 | Esqueleto, banco, autenticação, tomadores, configuração, cálculo de tributos | ✅ concluída |
 | 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
 | 3 | `transport` + emissão em Produção Restrita | ✅ concluída — **NFS-e autorizada** |
-| 4 | Webhook da Stripe + idempotência | ⬜ |
+| 4 | Webhook da Stripe + idempotência | ✅ concluída |
 | 5 | Painel React | ⬜ |
 | 6 | Cancelamento e reemissão | ✅ concluída |
 | 7 | Virada para Produção | ⬜ |
@@ -115,6 +115,17 @@ o XML assinado sem enviar.
 Prazo, valor limite e exigência de tomador identificado são **parametrizados pelo município**
 (regras E0822, E0823 e E0824), então a recusa pode ser legítima mesmo com o XML correto.
 
+### Webhook da Stripe
+
+Na Stripe, crie um endpoint apontando para `https://SEU_HOST/api/stripe/webhook` com o evento
+**`invoice.payment_succeeded`**, e ponha o signing secret em `STRIPE_WEBHOOK_SECRET`.
+
+O CNPJ do tomador sai do **Tax ID** do cliente (`br_cnpj`), que a Stripe grava na própria
+fatura — não precisa de metadata nem de chamada extra à API. O metadata `auto_invoice.cnpj`
+continua funcionando como alternativa, para clientes cadastrados antes do Tax ID.
+
+Não emitem nota, por decisão de negócio: fatura de valor zero (trial) e moeda diferente de BRL.
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):
@@ -147,6 +158,10 @@ server/
       signer.js           XMLDSig sobre infDPS (xml-crypto + node-forge)
       client.js           fachada: reserva, monta, assina, envia e persiste
       evento-builder.js   pedido de registro de evento (cancelamento e101101)
+    stripe/
+      webhook.js          verificação da assinatura (HMAC, tempo constante)
+      mapper.js           fatura -> payload de emissão
+      processador.js      resolve tomador, reserva e emite
       transport.js        mTLS, gzip+base64, POST/GET/HEAD e eventos
       errors.js           rejeição x transporte x certificado
 schemas/1.01/             XSDs oficiais (gov.br), sem modificação

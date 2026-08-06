@@ -7,14 +7,15 @@ import authRoutes from './routes/auth.js';
 import tomadoresRoutes from './routes/tomadores.js';
 import notasRoutes from './routes/notas.js';
 import configRoutes from './routes/config.js';
+import stripeRoutes from './routes/stripe.js';
 
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
 
-  // O webhook da Stripe precisa do corpo RAW para conferir a assinatura, por isso
-  // é montado antes do express.json() global. A rota entra na Fase 4.
-  app.use('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '2mb' }));
+  // O webhook da Stripe precisa do corpo RAW para conferir a assinatura: a
+  // Stripe assina os bytes exatos, e reserializar o JSON invalidaria a conferência.
+  app.use('/api/stripe/webhook', express.raw({ type: '*/*', limit: '2mb' }));
   app.use(express.json({ limit: '2mb' }));
 
   const isTest = process.env.NODE_ENV === 'test';
@@ -39,6 +40,8 @@ export function createApp() {
   app.use('/api/tomadores', tomadoresRoutes);
   app.use('/api/notas', notasRoutes);
   app.use('/api/config', configRoutes);
+  // Sem sessão: quem autentica aqui é a assinatura da Stripe.
+  app.use('/api/stripe', stripeRoutes);
 
   // A assinatura de 4 argumentos é o que faz o Express reconhecer isto como error handler.
   app.use((err, _req, res, _next) => {
