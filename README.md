@@ -37,6 +37,17 @@ O `seed` lê os dados fiscais do **`.env`** (bloco `EMITENTE_*` e `SERVICO_*`) e
 do emitente e o serviço padrão. Nada de dado fiscal fica no código — este repositório é
 público. Se faltar alguma variável obrigatória, o seed avisa qual e não grava nada.
 
+### No servidor
+
+O repositório não versiona `node_modules`. Depois de clonar ou de um `git pull` que mexa em
+`package.json`, instale as dependências com as versões travadas no lock:
+
+```bash
+npm ci
+```
+
+Sem isso qualquer script falha com `ERR_MODULE_NOT_FOUND`.
+
 ### Conferindo o certificado A1
 
 Depois de instalar o `.pfx` no servidor e preencher `NFSE_CERT_PATH` e
