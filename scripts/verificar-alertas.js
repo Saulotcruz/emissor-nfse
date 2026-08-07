@@ -34,12 +34,25 @@ async function main() {
       return;
     }
     console.log('✓ Conexão SMTP ok');
-    await enviarAlerta({
+    const r = await enviarAlerta({
       assunto: '[NFS-e] E-mail de teste',
       texto: 'Se você está lendo isto, os alertas do emissor de NFS-e estão configurados.',
       cfg,
     });
-    console.log(`✓ E-mail de teste enviado para ${cfg.para}`);
+    console.log(`  remetente  ${r.envelopeDe}`);
+    console.log(`  aceitos    ${r.aceitos.join(', ') || '(nenhum)'}`);
+    if (r.rejeitados.length) console.log(`  REJEITADOS ${r.rejeitados.join(', ')}`);
+    console.log(`  messageId  ${r.messageId}`);
+    console.log(`  resposta   ${r.resposta}`);
+
+    if (!r.aceitos.length) {
+      console.error('\n✗ O servidor não aceitou nenhum destinatário.');
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`\n✓ ${cfg.host} aceitou entregar para ${r.aceitos.join(', ')}.`);
+    console.log('  Aceito não é entregue: se não chegar, procure em spam e confira');
+    console.log('  se há filtro ou encaminhamento no destinatário.');
     return;
   }
 
@@ -83,7 +96,8 @@ async function main() {
 
   try {
     const r = await enviarAlerta({ assunto, texto });
-    console.log(`E-mail enviado (${r.messageId})`);
+    console.log(`E-mail aceito para ${r.aceitos.join(', ')} (${r.messageId})`);
+    if (r.rejeitados.length) console.error(`Destinatários recusados: ${r.rejeitados.join(', ')}`);
   } catch (e) {
     console.error(`✗ Falha ao enviar o alerta: ${e.message}`);
     process.exitCode = 1;

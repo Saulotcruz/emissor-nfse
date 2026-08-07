@@ -57,7 +57,18 @@ export async function enviarAlerta({ assunto, texto, cfg = configuracaoSmtp() })
       subject: assunto,
       text: texto,
     });
-    return { ok: true, messageId: r.messageId };
+
+    // `accepted` é quem o servidor aceitou entregar; `rejected`, quem ele recusou
+    // na hora. O `response` traz a linha crua do SMTP, com o id da fila do Gmail —
+    // é o que permite rastrear a mensagem depois se ela não chegar.
+    return {
+      ok: r.rejected?.length === 0,
+      messageId: r.messageId,
+      aceitos: r.accepted ?? [],
+      rejeitados: r.rejected ?? [],
+      resposta: r.response ?? null,
+      envelopeDe: r.envelope?.from ?? null,
+    };
   } catch (e) {
     throw new Error(traduzirErroSmtp(e));
   } finally {
