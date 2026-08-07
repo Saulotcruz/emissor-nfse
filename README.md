@@ -115,6 +115,24 @@ o XML assinado sem enviar.
 Prazo, valor limite e exigência de tomador identificado são **parametrizados pelo município**
 (regras E0822, E0823 e E0824), então a recusa pode ser legítima mesmo com o XML correto.
 
+### Rodando o serviço
+
+Os comandos `cert`, `tomador`, `emitir-teste` e `cancelar` são de linha: executam e saem.
+O servidor HTTP (webhook da Stripe, API e painel) é o `server/index.js`, na **porta 3100**
+por padrão — ajustável pela env `PORT`.
+
+Com pm2:
+
+```bash
+pm2 start ecosystem.config.cjs && pm2 save
+```
+
+O `pm2 startup` (uma vez, com sudo) faz o serviço voltar sozinho depois de reiniciar a máquina.
+As migrações rodam automaticamente no boot do processo.
+
+Atrás do nginx, lembre de `COOKIE_SECURE=1` no `.env` — o `trust proxy` já está ligado e a
+sessão depende do `X-Forwarded-Proto`.
+
 ### Webhook da Stripe
 
 Na Stripe, crie um endpoint apontando para `https://SEU_HOST/api/stripe/webhook` com o evento

@@ -12,3 +12,4 @@ coverage/
 *.pem
 *.key
 certs/
+logs/
