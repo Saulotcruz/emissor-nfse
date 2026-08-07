@@ -90,6 +90,42 @@ describe('lerNfse', () => {
   it('recusa XML que não seja uma NFS-e', async () => {
     expect(() => lerNfse('<DPS><infDPS/></DPS>')).toThrow(/infNFSe/);
   });
+
+  // Campos que a NT 008/2026 acrescentou ao layout obrigatório.
+  it('lê o tipo de emitente e o regime do Simples Nacional', () => {
+    expect(d.tipoEmitente).toBe('1');
+    expect(d.prestador.optanteSimplesNacional).toBe('1');
+  });
+
+  // Destinatário e intermediário viram a faixa "NÃO IDENTIFICADO" no PDF; o
+  // leitor precisa devolver null, e não um objeto de campos vazios, para que o
+  // gerador distinga grupo ausente de grupo presente e sem dados.
+  it('devolve null para destinatário e intermediário ausentes', () => {
+    expect(d.destinatario).toBeNull();
+    expect(d.intermediario).toBeNull();
+  });
+
+  it('reconhece o intermediário quando ele existe', () => {
+    const com = NFSE_XML.replace(
+      '<serv>',
+      '<interm><CNPJ>19131243000197</CNPJ><xNome>INTERMEDIARIO LTDA</xNome></interm><serv>'
+    );
+    expect(lerNfse(com).intermediario).toMatchObject({ nome: 'INTERMEDIARIO LTDA' });
+  });
+
+  // O bloco IBS/CBS é impresso mesmo vazio: o layout da NT é fixo.
+  it('devolve o grupo IBS/CBS vazio enquanto a reforma não vale', () => {
+    expect(d.ibsCbs.valorTotalIbs).toBeNull();
+    expect(d.totais.totalIbsCbs).toBeNull();
+  });
+
+  // A SEFIN pode aplicar alíquota diferente da pedida na DPS; o DANFSe mostra
+  // a aplicada.
+  it('prefere a alíquota aplicada devolvida pela SEFIN', () => {
+    const comAplicada = NFSE_XML.replace('<vBC>1.00</vBC>', '<vBC>1.00</vBC><pAliqAplic>3.00</pAliqAplic>');
+    expect(lerNfse(comAplicada).issqn.aliquotaAplicada).toBe('3.00');
+    expect(d.issqn.aliquotaAplicada).toBe('2.00');
+  });
 });
 
 describe('gerarDanfse', () => {
@@ -100,10 +136,19 @@ describe('gerarDanfse', () => {
     expect(pdf.length).toBeGreaterThan(3000);
   });
 
+  const contarPaginas = (pdf) => (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+
   it('gera em uma página só', async () => {
-    const pdf = await gerarDanfse(NFSE_XML);
-    const paginas = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
-    expect(paginas).toBe(1);
+    expect(contarPaginas(await gerarDanfse(NFSE_XML))).toBe(1);
+  });
+
+  // O layout da NT é de posição fixa: o canhoto fica a 28,10 cm do topo, e a
+  // descrição do serviço aceita até 1300 caracteres. Se o texto empurrasse o
+  // resto, o documento viraria duas páginas e o canhoto sairia do lugar — por
+  // isso a NT manda cortar com reticências, e é isso que o gerador faz.
+  it('mantém uma página com a descrição no tamanho máximo do leiaute', async () => {
+    const longo = NFSE_XML.replace('Emissão de teste', 'Serviço prestado. '.repeat(72).slice(0, 1300));
+    expect(contarPaginas(await gerarDanfse(longo))).toBe(1);
   });
 
   // Exigência da NT 008/2026. O estado vem de fora porque o cStat da NFS-e

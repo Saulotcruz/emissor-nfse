@@ -131,21 +131,60 @@ A API que gerava o DANFSe foi **desligada em 1º de julho de 2026**. A NT SE/CGS
 transferiu a geração para os sistemas emissores e tornou o layout um **padrão nacional
 obrigatório**, com prazo de adaptação até 3 de agosto de 2026.
 
-O que a NT exige e o gerador observa:
+### A grade vem do anexo da NT
+
+O anexo da NT traz uma tabela **"Posição c/ relação à margem"** com 114 campos: para cada um,
+altura, largura, distância da esquerda e do topo em centímetros, o caminho no XML e a máscara
+de formatação. É dela que sai toda a geometria de `danfse.js` — as constantes em centímetros
+não são escolha de estilo.
+
+| Medida | Valor |
+|---|---|
+| Página | A4 retrato, margem 0,30 cm, largura útil 20,40 cm |
+| Colunas | 0,30 / 5,41 / 10,51 / 15,62 cm, largura 5,09 (ou 10,19 quando ocupa duas) |
+| Altura de linha | 0,63 cm nos blocos de pessoa e tributação; 0,67 cm nos dados e totais |
+| Cabeçalho | 1,16 cm de altura, a partir de 0,30 |
+| Chave de acesso | 0,77 × 15,30 cm em 0,30 / 1,48 |
+| QR Code | 1,52 × 1,52 cm em 17,48 / 1,67 |
+| Complemento do QR | 0,68 × 4,72 cm em 15,80 / 3,36 |
+| Canhoto | 0,67 cm de altura, em posição fixa a 28,10 cm do topo |
+
+Ordem dos blocos, também do anexo: cabeçalho → dados da NFS-e → prestador → tomador →
+destinatário → intermediário → serviço prestado → tributação municipal → tributação federal →
+tributação IBS/CBS → valor total → informações complementares → canhoto.
+
+Detalhes que a tabela impõe e são fáceis de errar:
+
+- **descrições por extenso, nunca o código**: `tpEmit=1` imprime "Prestador", não "1";
+- **texto cortado com reticências**, não quebrado em duas linhas — daí o campo elástico ser
+  só o de informações complementares;
+- **destinatário e intermediário ausentes** viram a faixa "NÃO IDENTIFICADO NA NFS-e", não um
+  bloco de traços;
+- **campos concatenados**: "Município / Sigla UF", "Código IBGE / CEP", "CST / cClassTrib";
+- o **município do cabeçalho não é exibido** quando o código de tributação nacional é 99;
+- o bloco **IBS/CBS é impresso mesmo vazio** — o layout é fixo, e um ERP espera as células
+  naquela posição.
+
+### Demais regras
 
 | Regra | Onde |
 |---|---|
 | QR Code de 1,52 cm × 1,52 cm | `QR_LADO` em `danfse.js` |
-| Fonte Arial/MS Sans Serif, mínimo 7pt | Helvetica (métrica equivalente), tamanhos ≥ 5,5pt nos rótulos |
+| Fonte Arial/MS Sans Serif, mínimo 7pt | Helvetica (métrica equivalente); valores em 8,5pt |
 | Paridade XML–PDF | dados lidos do XML autorizado, nunca do banco |
 | Marca d'água em documento cancelado ou substituído | `marcaDagua()` |
 
 O estado de cancelamento **não** vem do XML: o `cStat` da NFS-e nunca muda para cancelada.
 Ele é passado por fora, a partir do status da nota.
 
-Ponto em aberto: o layout foi construído a partir de um DANFSe real e das regras que
-consegui confirmar. **Não foi conferido contra o anexo completo da NT 008/2026** — vale a
-validação de um contador antes de tratá-lo como definitivo.
+Uma tensão real, registrada: vários rótulos do próprio anexo não cabem em 7pt na coluna de
+5,09 cm que o anexo lhes dá — "Base de Cálculo Após Exclusões e Reduções", por exemplo. O
+gerador encolhe o **rótulo** até 6pt para caber numa linha; os **valores** ficam sempre em
+8,5pt. O DANFSe emitido pela própria SEFIN faz o mesmo. Se o mínimo de 7pt for lido como
+valendo também para rótulos, esse é o ponto a rever.
+
+O layout foi conferido campo a campo contra um DANFSe v2.0 real emitido pela SEFIN. Ainda
+assim, vale a validação de um contador antes de tratá-lo como definitivo.
 
 ## Rejeições encontradas na Produção Restrita
 
