@@ -48,7 +48,17 @@ export function dataHoraUtc(data, offsetHoras = -3) {
   return `${iso}${sinal}${hh}:00`;
 }
 
-/** Data simples AAAA-MM-DD (TSData). */
+/**
+ * Data simples AAAA-MM-DD (TSData).
+ *
+ * Quando o valor já é uma data civil — o que o MySQL devolve com `dateStrings`,
+ * por exemplo — ele volta intacto. Converter para Date primeiro seria um bug:
+ * `new Date('2026-09-01')` é meia-noite UTC, e o deslocamento de -3h jogaria a
+ * competência para 2026-08-31, ou seja, o mês anterior.
+ */
 export function dataSimples(data, offsetHoras = -3) {
+  if (typeof data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.trim())) {
+    return data.trim();
+  }
   return dataHoraUtc(data, offsetHoras).slice(0, 10);
 }

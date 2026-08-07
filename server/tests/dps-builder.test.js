@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { montarDps } from '../services/nfse/dps-builder.js';
 import { montarIdDps, serieDeWebservice, chaveValida } from '../services/nfse/id-dps.js';
-import { dataHoraUtc, dec, escapar } from '../services/nfse/xml.js';
+import { dataHoraUtc, dataSimples, dec, escapar } from '../services/nfse/xml.js';
 import { EMITENTE_FIXTURE, SERVICO_FIXTURE } from './fixtures/emitente.js';
 import { temXmllint, validarDps } from './helpers/xsd.js';
 
@@ -90,6 +90,21 @@ describe('helpers de XML', () => {
     expect(dec(0)).toBe('0.00');
   });
 
+  // Bug encontrado conferindo uma nota real: a competência saiu um dia atrás.
+  // O MySQL devolve DATE como string, e convertê-la para Date antes de aplicar
+  // o fuso desloca o dia — no dia 1º, para o mês anterior.
+  it('preserva a data civil que vem do banco, sem deslocar o dia', () => {
+    expect(dataSimples('2026-08-07')).toBe('2026-08-07');
+    expect(dataSimples('2026-09-01')).toBe('2026-09-01');
+    expect(dataSimples('2026-01-01')).toBe('2026-01-01');
+  });
+
+  it('converte Date para a data local, não a UTC', () => {
+    // 07/08 às 00:30 UTC ainda é 06/08 em São Paulo.
+    expect(dataSimples(new Date('2026-08-07T00:30:00Z'))).toBe('2026-08-06');
+    expect(dataSimples(new Date('2026-08-07T13:21:23Z'))).toBe('2026-08-07');
+  });
+
   it('gera dhEmi com offset explícito — toISOString() usa Z e o XSD rejeita', () => {
     const s = dataHoraUtc(new Date('2026-08-05T15:56:21Z'));
     expect(s).toBe('2026-08-05T12:56:21-03:00');
@@ -98,6 +113,11 @@ describe('helpers de XML', () => {
 });
 
 describe('montarDps', () => {
+  it('leva a competência exatamente como veio, sem deslocar o dia', () => {
+    const { xml } = montar({ nota: { competencia: '2026-09-01' } });
+    expect(xml).toContain('<dCompet>2026-09-01</dCompet>');
+  });
+
   it('produz XML com a raiz, versão e Id corretos', () => {
     const { xml, id } = montar();
     expect(xml).toContain('<DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01">');

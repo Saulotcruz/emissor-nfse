@@ -172,6 +172,15 @@ O corpo da rejeição vem assim, e é o que o `errors.js` desmonta:
  "idDPS":"DPS...","erros":[{"Codigo":"E0121","Descricao":"..."}]}
 ```
 
+## Competência
+
+`dCompet` é **data civil**, não instante. O MySQL devolve `DATE` como string com `dateStrings`,
+e converter para `Date` antes de aplicar fuso desloca o dia: `new Date('2026-09-01')` é meia-noite
+UTC, e −3h joga para 31/08 — competência no mês anterior.
+
+Bug real, encontrado conferindo uma nota de produção que saiu com competência 06/08 tendo sido
+emitida em 07/08. Corrigido em `xml.js`: string no formato `AAAA-MM-DD` volta intacta.
+
 ## Conferência numérica
 
 Os valores da nota real viraram teste de regressão em `server/tests/calculo.test.js`:
