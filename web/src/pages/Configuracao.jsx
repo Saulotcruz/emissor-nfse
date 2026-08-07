@@ -31,6 +31,8 @@ export default function Configuracao() {
   const [certificado, setCertificado] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  const [secao, setSecao] = useState('seguranca');
+  const [criandoServico, setCriandoServico] = useState(false);
 
   useEffect(() => {
     Promise.all([api('/config/emitente'), api('/config/servicos'), api('/config/certificado')])
@@ -72,6 +74,40 @@ export default function Configuracao() {
     }
   }
 
+  /**
+   * Cria um serviço novo, para o caso de contratos com tributação diferente —
+   * suporte de TI e SaaS podem ter códigos e alíquotas distintos.
+   *
+   * Nasce com os campos zerados de propósito: copiar as alíquotas do serviço
+   * existente pareceria conveniência, mas a chance de alguém salvar sem
+   * conferir e emitir com o imposto errado é grande demais.
+   */
+  async function criarServico(ev) {
+    ev.preventDefault();
+    const form = new FormData(ev.target);
+    setSalvando(true);
+    setAviso(null);
+    try {
+      const d = await api('/config/servicos', {
+        method: 'POST',
+        body: {
+          codigo_tributacao_nacional: form.get('codigo'),
+          descricao: form.get('descricao'),
+          aliquota_iss: 0,
+          aliquota_pis: 0,
+          aliquota_cofins: 0,
+        },
+      });
+      setServicos((atual) => [...atual, d.servico]);
+      setCriandoServico(false);
+      setAviso({ tipo: 'ok', texto: 'Serviço criado. Preencha as alíquotas antes de usá-lo num contrato.' });
+    } catch (e) {
+      setAviso({ tipo: 'erro', texto: e.message });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   function alterarServico(id, campo, valor) {
     setServicos((atual) => atual.map((s) => (s.id === id ? { ...s, [campo]: valor } : s)));
   }
@@ -84,13 +120,10 @@ export default function Configuracao() {
 
   return (
     <div className="grid gap-4">
-      {/* Segurança da conta vem antes dos dados fiscais: é o que protege todo
-          o resto. */}
-      <Mfa />
       <div>
         <h1 className="text-xl font-black">Configuração</h1>
         <p className="muted text-sm font-semibold">
-          Dados fiscais da empresa, tributação e certificado
+          Segurança da conta, dados fiscais, tributação e certificado
         </p>
       </div>
 
@@ -105,7 +138,35 @@ export default function Configuracao() {
         </p>
       )}
 
+      {/* Menu lateral: a tela tinha crescido a ponto de o certificado ficar a
+          três rolagens da segurança. Uma seção por vez também reduz a chance de
+          salvar o formulário errado. */}
+      <div className="grid gap-4 md:grid-cols-[13rem_1fr] md:items-start">
+        <nav className="card sticky top-20 grid gap-1 p-2">
+          {SECOES.map(([id, rotulo, dica]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSecao(id)}
+              className={`rounded-lg px-3 py-2 text-left text-sm font-bold transition ${
+                secao === id
+                  ? 'bg-[var(--glink-hero)] text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {rotulo}
+              <span className={`block text-[0.7rem] font-semibold ${secao === id ? 'text-white/70' : 'text-slate-400'}`}>
+                {dica}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="grid gap-4">
+      {secao === 'seguranca' && <Mfa />}
+
       {/* Empresa */}
+      {secao === 'empresa' && (
       <form onSubmit={salvarEmitente} className="card grid gap-3 p-5">
         <h2 className="text-base font-black">Empresa</h2>
 
@@ -175,8 +236,41 @@ export default function Configuracao() {
           </div>
         )}
       </form>
+      )}
 
       {/* Serviços e tributação */}
+      {secao === 'servicos' && (
+      <>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="muted mr-auto text-xs font-semibold">
+          Cada contrato recorrente escolhe um destes serviços — é ele que define o código de
+          tributação e as alíquotas da nota.
+        </p>
+        {admin && (
+          <button type="button" className="btn btn-primary" onClick={() => setCriandoServico(!criandoServico)}>
+            {criandoServico ? 'Cancelar' : 'Novo serviço'}
+          </button>
+        )}
+      </div>
+
+      {criandoServico && (
+        <form onSubmit={criarServico} className="card grid gap-3 p-5 sm:grid-cols-[1fr_2fr_auto]">
+          <label className="label">Código de tributação nacional
+            <input className="field" name="codigo" required pattern="[0-9]{6}" placeholder="010501" />
+            <span className="text-[0.7rem] font-semibold normal-case">6 dígitos</span>
+          </label>
+          <label className="label">Descrição
+            <input className="field" name="descricao" required placeholder="Suporte técnico de TI" />
+          </label>
+          <button className="btn btn-success self-start sm:mt-6" disabled={salvando}>Criar</button>
+          <p className="muted text-xs font-semibold sm:col-span-3">
+            O serviço nasce com as alíquotas zeradas. Preencha-as abaixo antes de usá-lo — copiar
+            as do serviço existente seria conveniente e arriscado: bastaria não conferir para
+            emitir com o imposto errado.
+          </p>
+        </form>
+      )}
+
       {servicos.map((s) => (
         <form key={s.id} onSubmit={(e) => salvarServico(e, s)} className="card grid gap-3 p-5">
           <div className="flex flex-wrap items-center gap-2">
@@ -254,8 +348,11 @@ export default function Configuracao() {
           )}
         </form>
       ))}
+      </>
+      )}
 
       {/* Certificado */}
+      {secao === 'certificado' && (
       <div className="card grid gap-3 p-5">
         <h2 className="text-base font-black">Certificado digital</h2>
         {certificado?.certificado ? (
@@ -280,9 +377,19 @@ export default function Configuracao() {
           dois fatores — é a operação que mais amplia o risco do sistema.
         </p>
       </div>
+      )}
+        </div>
+      </div>
     </div>
   );
 }
+
+const SECOES = [
+  ['seguranca', 'Segurança', 'senha e 2 fatores'],
+  ['empresa', 'Empresa', 'dados fiscais'],
+  ['servicos', 'Serviços', 'códigos e alíquotas'],
+  ['certificado', 'Certificado', 'validade do A1'],
+];
 
 function Campo({ t, v, onChange, disabled, dica, tipo = 'text' }) {
   return (
