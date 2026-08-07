@@ -90,8 +90,16 @@ export async function reservarNota({
   });
 }
 
-/** Monta o cliente da SEFIN a partir do .env e do ambiente do emitente. */
-export function criarClienteSefin(emitente) {
+/**
+ * Monta o cliente da SEFIN.
+ *
+ * O `ambiente` pode ser sobrescrito porque cada nota carrega o seu: depois da
+ * virada para produção, o emitente fica em `producao` mas as notas antigas
+ * continuam em `producao_restrita`. Consultar, cancelar ou reemitir uma delas
+ * usando o endpoint de produção falaria com o ambiente errado — a chave de
+ * acesso não existe lá, e a resposta seria um 404 enganoso.
+ */
+export function criarClienteSefin(emitente, { ambiente } = {}) {
   const caminho = process.env.NFSE_CERT_PATH;
   const senha = process.env.NFSE_CERT_PASSWORD;
   if (!caminho) throw new Error('NFSE_CERT_PATH não definido');
@@ -104,7 +112,7 @@ export function criarClienteSefin(emitente) {
     // Vai o PEM, não o .pfx: o OpenSSL 3 recusa o PKCS#12 da ICP-Brasil.
     // A cadeia completa (titular + intermediários) segue no `cert`.
     client: new SefinClient({
-      ambiente: emitente.ambiente,
+      ambiente: ambiente ?? emitente.ambiente,
       chavePem: certificado.privateKeyPem,
       certPem: certificado.cadeiaPem ?? certificado.certificatePem,
     }),
@@ -146,7 +154,7 @@ export async function emitirNota(notaId, { algoritmo = 'sha256', conferirAntes =
     },
   });
 
-  const { client, certificado } = criarClienteSefin(emitente);
+  const { client, certificado } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
   const assinado = assinarDps(xml, certificado, { algoritmo });
 
   await pool.query(
@@ -258,7 +266,7 @@ export async function cancelarNota(notaId, { motivo, codigoMotivo, algoritmo = '
     ambiente: nota.ambiente,
   });
 
-  const { client, certificado } = criarClienteSefin(emitente);
+  const { client, certificado } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
   const assinado = assinarPedidoEvento(xml, certificado, { algoritmo });
 
   const [r] = await pool.query(
@@ -309,7 +317,7 @@ export async function sincronizarNota(notaId) {
   }
 
   const emitente = await carregarEmitente();
-  const { client } = criarClienteSefin(emitente);
+  const { client } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
   const eventos = await client.consultarEventos(nota.chave_acesso);
 
   const cancelamento = eventos.find((e) => {
