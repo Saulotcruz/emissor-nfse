@@ -176,14 +176,19 @@ SEFIN, e uma exceção aqui faria a emissão parecer malsucedida.
 npm run danfse -- --nota 3
 ```
 
-No painel, o botão **PDF** ao lado do XML. O arquivo é gerado sob demanda pelo ambiente
-nacional e **não é guardado**: o layout muda com as notas técnicas, e um PDF salvo hoje
-envelhece. O documento fiscal é o XML; o DANFSe é representação.
+No painel, o botão **PDF** ao lado do XML. O PDF é **montado aqui**, a partir do XML autorizado.
 
-O caminho da API não está na documentação pública, então o cliente tenta os candidatos em
-ordem e usa o primeiro que devolver PDF de verdade — a assinatura `%PDF` é conferida, para
-um HTML de erro com status 200 não virar arquivo corrompido. O comando informa qual endpoint
-respondeu.
+A API oficial que gerava o DANFSe foi **desligada em 1º de julho de 2026** (NT SE/CGSN
+008/2026): a geração passou a ser responsabilidade dos sistemas emissores. Tentar usá-la hoje
+devolve 501, 404 ou 503, conforme o host.
+
+A fonte dos dados é o XML guardado na nota, não os campos do banco — a nota técnica exige
+paridade XML–PDF, e o XML é o que a SEFIN assinou. Se alguém editar o cadastro depois da
+emissão, o PDF continua refletindo o documento.
+
+Regras da NT observadas: QR Code de 1,52 cm, fonte mínima de 7pt e paridade XML–PDF. O PDF usa
+Helvetica, que é a métrica equivalente da Arial e está embutida em todo leitor — embutir a
+Arial exigiria distribuir o arquivo da fonte, que é licenciado.
 
 ### Conferindo cancelamentos feitos por fora
 

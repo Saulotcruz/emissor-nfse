@@ -33,6 +33,8 @@
     "mysql2": "^3.11.0",
     "node-forge": "^1.4.0",
     "nodemailer": "^9.0.5",
+    "pdfkit": "^0.19.1",
+    "qrcode": "^1.5.4",
     "xml-crypto": "^6.1.2"
   },
   "devDependencies": {

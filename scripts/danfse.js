@@ -5,8 +5,8 @@
  *   npm run danfse -- --nota 3
  *   npm run danfse -- --nota 3 --saida /tmp/nota.pdf
  *
- * Serve também para descobrir qual caminho da API responde: o comando informa
- * o endpoint que funcionou, ou lista o que cada tentativa devolveu.
+ * O PDF é montado aqui a partir do XML autorizado: a API oficial que gerava o
+ * DANFSe foi desligada em 1º de julho de 2026 (NT SE/CGSN 008/2026).
  */
 import fs from 'node:fs';
 import dotenv from 'dotenv';
@@ -26,11 +26,11 @@ try {
     console.error('Informe --nota <id>. Ex.: npm run danfse -- --nota 3');
     process.exitCode = 1;
   } else {
-    const { pdf, caminho, nota } = await baixarDanfse(Number(args.nota));
+    const { pdf, nota } = await baixarDanfse(Number(args.nota));
     const saida = args.saida ?? `danfse-${nota.numero_nfse ?? nota.id}.pdf`;
     fs.writeFileSync(saida, pdf);
     console.log(`✓ ${saida} (${(pdf.length / 1024).toFixed(1)} kB)`);
-    console.log(`  endpoint que respondeu: ${caminho}`);
+
   }
 } catch (e) {
   console.error(`✗ ${e.message}`);

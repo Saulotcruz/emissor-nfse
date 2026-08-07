@@ -181,55 +181,6 @@ export class SefinClient {
     );
   }
 
-  /**
-   * DANFSe em PDF, gerado pelo ambiente nacional a partir da chave.
-   *
-   * O caminho não está na documentação pública, então tentamos os candidatos em
-   * ordem e ficamos no primeiro que devolver PDF. Foi o que resolveu a consulta
-   * de eventos: a documentação diverge da API em detalhes que só o uso mostra.
-   *
-   * Gerar sob demanda em vez de guardar: o layout do DANFSe muda com as notas
-   * técnicas, e um PDF salvo hoje envelhece. O XML é que é o documento.
-   */
-  async baixarDanfse(chaveAcesso) {
-    const tentativas = [
-      // Caminho da documentação, na SEFIN.
-      { base: this.baseUrl, caminho: `${PREFIXO}/danfse/${chaveAcesso}` },
-      // Mesma rota em minúsculas, caso o roteamento diferencie caixa.
-      { base: this.baseUrl, caminho: `/sefinnacional/danfse/${chaveAcesso}` },
-      { base: this.baseUrlAdn, caminho: `${PREFIXO_ADN}/danfse/${chaveAcesso}` },
-      { base: this.baseUrlAdn, caminho: `/danfse/${chaveAcesso}` },
-    ];
-
-    const erros = [];
-    for (const t of tentativas) {
-      try {
-        const r = await this.requisitar('GET', t.caminho, null, {
-          base: t.base,
-          binario: true,
-          aceitar404: true,
-        });
-        if (r.status === 404) {
-          erros.push(`404 ${t.caminho}`);
-          continue;
-        }
-        // Assinatura do PDF: %PDF. Sem isto, um HTML de erro com status 200
-        // viraria um "PDF" corrompido na mão do usuário.
-        if (r.bytes?.subarray(0, 4).toString('latin1') === '%PDF') {
-          return { pdf: r.bytes, caminho: t.caminho };
-        }
-        erros.push(`${t.caminho} respondeu ${r.tipo || 'formato desconhecido'}, não PDF`);
-      } catch (e) {
-        erros.push(`${t.caminho}: ${e.message}`);
-      }
-    }
-
-    throw new RejeicaoSefinError(
-      `Não foi possível obter o DANFSe. Tentativas: ${erros.join(' | ')}`,
-      { status: 404 }
-    );
-  }
-
   async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false, base, binario = false, accept } = {}) {
     const url = new URL(caminho, base ?? this.baseUrl);
     const payload = corpoJson ? Buffer.from(JSON.stringify(corpoJson), 'utf8') : null;

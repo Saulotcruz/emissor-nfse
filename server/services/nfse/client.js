@@ -7,6 +7,7 @@ import { SefinClient } from './transport.js';
 import { montarCancelamento, MOTIVO_CANCELAMENTO } from './evento-builder.js';
 import { SefinError, TransporteSefinError } from './errors.js';
 import { notificarEmissao } from '../alertas/notificacao.js';
+import { gerarDanfse } from './danfse.js';
 
 /**
  * Fachada da emissão: banco -> DPS -> assinatura -> SEFIN -> banco.
@@ -372,19 +373,21 @@ export async function sincronizarNotas({ limite = 500, dias = 90 } = {}) {
 }
 
 /**
- * Baixa o DANFSe de uma nota autorizada.
- * Usa o ambiente da própria nota, não o do emitente — uma nota antiga de teste
- * não existe no ambiente de produção.
+ * Gera o DANFSe de uma nota autorizada.
+ *
+ * A API oficial que devolvia este PDF foi desligada em 1º de julho de 2026
+ * (NT SE/CGSN 008/2026): a geração passou a ser responsabilidade do emissor.
+ *
+ * A fonte é o XML autorizado guardado na nota, não os campos do banco — a nota
+ * técnica exige paridade XML–PDF, e o XML é o que a SEFIN assinou. Se alguém
+ * editar o cadastro depois da emissão, o PDF continua refletindo o documento.
  */
 export async function baixarDanfse(notaId) {
   const [[nota]] = await pool.query('SELECT * FROM nota WHERE id = ?', [notaId]);
   if (!nota) throw new Error(`Nota ${notaId} não encontrada`);
-  if (!nota.chave_acesso) {
-    throw new Error('Nota sem chave de acesso: o DANFSe só existe depois de autorizada');
+  if (!nota.nfse_xml) {
+    throw new Error('Nota sem XML autorizado: o DANFSe só existe depois da autorização');
   }
 
-  const emitente = await carregarEmitente();
-  const { client } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
-  const { pdf, caminho } = await client.baixarDanfse(nota.chave_acesso);
-  return { pdf, caminho, nota };
+  return { pdf: await gerarDanfse(nota.nfse_xml), nota };
 }
