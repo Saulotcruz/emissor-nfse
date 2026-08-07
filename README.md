@@ -14,7 +14,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 | 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
 | 3 | `transport` + emissão em Produção Restrita | ✅ concluída — **NFS-e autorizada** |
 | 4 | Webhook da Stripe + idempotência | ✅ concluída |
-| 5 | Painel React | ⬜ |
+| 5 | Painel React | 🟡 tela de notas pronta |
 | 6 | Cancelamento e reemissão | ✅ concluída |
 | 7 | Virada para Produção | ⬜ |
 
@@ -114,6 +114,20 @@ o XML assinado sem enviar.
 
 Prazo, valor limite e exigência de tomador identificado são **parametrizados pelo município**
 (regras E0822, E0823 e E0824), então a recusa pode ser legítima mesmo com o XML correto.
+
+### Painel
+
+Tela de notas em `web/`, no mesmo layout do CRM. Listagem com filtro por status e competência,
+detalhe da nota, download do XML, reemissão e cancelamento.
+
+```bash
+npm run build:web        # gera web/dist, servido pelo próprio backend
+```
+
+Em desenvolvimento, `npm --prefix web run dev` sobe o Vite com proxy para a porta 3100.
+
+O acesso usa o mesmo login da API. Uma faixa âmbar no topo avisa quando o ambiente é Produção
+Restrita — saber em qual ambiente se está é a informação mais cara de descobrir tarde.
 
 ### Rodando o serviço
 
