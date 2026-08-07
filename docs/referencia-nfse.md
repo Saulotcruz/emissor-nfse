@@ -125,6 +125,28 @@ O caminho completo está provado: mTLS com certificado A1 → XML no schema v1.0
 assinatura **RSA-SHA256** com canonicalização exclusiva → GZip+Base64 → SEFIN → NFS-e
 autorizada de forma síncrona. O suporte a SHA1 continua no código, mas não é necessário.
 
+## DANFSe
+
+A API que gerava o DANFSe foi **desligada em 1º de julho de 2026**. A NT SE/CGSN 008/2026
+transferiu a geração para os sistemas emissores e tornou o layout um **padrão nacional
+obrigatório**, com prazo de adaptação até 3 de agosto de 2026.
+
+O que a NT exige e o gerador observa:
+
+| Regra | Onde |
+|---|---|
+| QR Code de 1,52 cm × 1,52 cm | `QR_LADO` em `danfse.js` |
+| Fonte Arial/MS Sans Serif, mínimo 7pt | Helvetica (métrica equivalente), tamanhos ≥ 5,5pt nos rótulos |
+| Paridade XML–PDF | dados lidos do XML autorizado, nunca do banco |
+| Marca d'água em documento cancelado ou substituído | `marcaDagua()` |
+
+O estado de cancelamento **não** vem do XML: o `cStat` da NFS-e nunca muda para cancelada.
+Ele é passado por fora, a partir do status da nota.
+
+Ponto em aberto: o layout foi construído a partir de um DANFSe real e das regras que
+consegui confirmar. **Não foi conferido contra o anexo completo da NT 008/2026** — vale a
+validação de um contador antes de tratá-lo como definitivo.
+
 ## Rejeições encontradas na Produção Restrita
 
 Regras que o XSD não expressa e que só aparecem no envio real. Cada uma virou teste.

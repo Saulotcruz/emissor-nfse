@@ -106,6 +106,21 @@ describe('gerarDanfse', () => {
     expect(paginas).toBe(1);
   });
 
+  // Exigência da NT 008/2026. O estado vem de fora porque o cStat da NFS-e
+  // nunca muda para cancelada — sem a marca, o PDF de uma nota cancelada seria
+  // visualmente idêntico ao de uma válida.
+  it('imprime marca d\'agua em nota cancelada', async () => {
+    const normal = await gerarDanfse(NFSE_XML);
+    const cancelada = await gerarDanfse(NFSE_XML, { cancelada: true });
+    expect(cancelada.length).toBeGreaterThan(normal.length);
+  });
+
+  it('distingue cancelada de substituída', async () => {
+    const a = await gerarDanfse(NFSE_XML, { cancelada: true });
+    const b = await gerarDanfse(NFSE_XML, { substituida: true });
+    expect(a.length).not.toBe(b.length);
+  });
+
   // Produção Restrita não tem efeito fiscal; quem imprime precisa ver isso.
   it('marca o documento quando a nota é de produção restrita', async () => {
     const restrita = NFSE_XML.replace('<tpAmb>1</tpAmb>', '<tpAmb>2</tpAmb>');

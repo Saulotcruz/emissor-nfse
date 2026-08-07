@@ -19,6 +19,7 @@ import {
  *  - fontes Arial ou MS Sans Serif, mínimo 7pt
  *  - QR Code de 1,52 cm × 1,52 cm
  *  - paridade XML–PDF: só aparece o que está no XML
+ *  - documento cancelado ou substituído leva marca d'água diagonal
  *
  * Sobre a fonte: o PDF usa Helvetica, que é a métrica equivalente de Arial e
  * está embutida em todo leitor de PDF. Embutir a Arial exigiria distribuir o
@@ -71,9 +72,12 @@ const chaveFormatada = (c) => (c ? String(c).replace(/(\d{4})(?=\d)/g, '$1 ').tr
 
 /**
  * @param {string} nfseXml XML autorizado da NFS-e
+ * @param {object} [estado] situação atual da nota
+ * @param {boolean} [estado.cancelada]
+ * @param {boolean} [estado.substituida]
  * @returns {Promise<Buffer>} PDF
  */
-export async function gerarDanfse(nfseXml) {
+export async function gerarDanfse(nfseXml, estado = {}) {
   const d = lerNfse(nfseXml);
   const qr = await QRCode.toBuffer(`${URL_CONSULTA}?chave=${d.chaveAcesso}`, {
     margin: 0,
@@ -91,8 +95,28 @@ export async function gerarDanfse(nfseXml) {
   const pronto = new Promise((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
 
   desenhar(doc, d, qr);
+  marcaDagua(doc, estado);
   doc.end();
   return pronto;
+}
+
+/**
+ * Marca d'água diagonal exigida pela NT 008/2026 para documento cancelado ou
+ * substituído.
+ *
+ * O estado vem de fora, não do XML: o `cStat` da NFS-e nunca muda para
+ * cancelada — o cancelamento é um evento separado. Sem esta marca, o PDF de uma
+ * nota cancelada é visualmente idêntico ao de uma válida.
+ */
+function marcaDagua(doc, { cancelada, substituida }) {
+  const texto = cancelada ? 'CANCELADA' : substituida ? 'SUBSTITUÍDA' : null;
+  if (!texto) return;
+
+  doc.save();
+  doc.rotate(-45, { origin: [297, 421] });
+  doc.font('Helvetica-Bold').fontSize(64).fillColor('#c0392b').opacity(0.28)
+    .text(texto, 0, 400, { width: 595, align: 'center' });
+  doc.restore();
 }
 
 function desenhar(doc, d, qr) {

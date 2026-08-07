@@ -389,5 +389,8 @@ export async function baixarDanfse(notaId) {
     throw new Error('Nota sem XML autorizado: o DANFSe só existe depois da autorização');
   }
 
-  return { pdf: await gerarDanfse(nota.nfse_xml), nota };
+  // O estado vai por fora porque o XML não o carrega: o cStat da NFS-e nunca
+  // muda para cancelada, já que o cancelamento é um evento separado.
+  const pdf = await gerarDanfse(nota.nfse_xml, { cancelada: nota.status === 'cancelada' });
+  return { pdf, nota };
 }
