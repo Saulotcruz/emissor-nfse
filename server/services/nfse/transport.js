@@ -1,7 +1,7 @@
 import https from 'node:https';
 import zlib from 'node:zlib';
 import { promisify } from 'node:util';
-import { erroDaResposta, TransporteSefinError } from './errors.js';
+import { erroDaResposta, TransporteSefinError, RejeicaoSefinError } from './errors.js';
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -19,11 +19,18 @@ export const BASE_URLS = {
   producao: 'https://sefin.nfse.gov.br',
 };
 
+/** Ambiente Nacional de Distribuição — é onde vivem as consultas de eventos. */
+export const BASE_URLS_ADN = {
+  producao_restrita: 'https://adn.producaorestrita.nfse.gov.br',
+  producao: 'https://adn.nfse.gov.br',
+};
+
 const PREFIXO = '/SefinNacional';
 const TIMEOUT_PADRAO = 60000;
 
-export function baseUrlDoAmbiente(ambiente) {
-  const url = BASE_URLS[ambiente];
+export function baseUrlDoAmbiente(ambiente, host = 'sefin') {
+  const mapa = host === 'adn' ? BASE_URLS_ADN : BASE_URLS;
+  const url = mapa[ambiente];
   if (!url) throw new Error(`Ambiente desconhecido: ${ambiente}`);
   return url;
 }
@@ -137,7 +144,20 @@ export class SefinClient {
       ? `${PREFIXO}/nfse/${chaveAcesso}/eventos/${tipoEvento}`
       : `${PREFIXO}/nfse/${chaveAcesso}/eventos`;
     const resp = await this.requisitar('GET', caminho, null, { aceitar404: true });
-    if (resp.status === 404) return [];
+
+    if (resp.status === 404) {
+      // Um 404 em HTML é o IIS dizendo que a ROTA não existe — muito diferente
+      // de "esta nota não tem esse evento". Tratar os dois igual faria a
+      // verificação passar em silêncio com o endpoint quebrado, que é pior que
+      // não ter verificação nenhuma.
+      if (typeof resp.corpo === 'string' && /<html/i.test(resp.corpo)) {
+        throw new RejeicaoSefinError(
+          `Endpoint de consulta de eventos não existe neste host: GET ${caminho}`,
+          { status: 404 }
+        );
+      }
+      return [];
+    }
 
     const lista = Array.isArray(resp.corpo) ? resp.corpo : resp.corpo?.eventos ?? [];
     return Promise.all(

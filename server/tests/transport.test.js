@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import zlib from 'node:zlib';
-import { SefinClient, comprimir, descomprimir, baseUrlDoAmbiente, BASE_URLS } from '../services/nfse/transport.js';
+import { SefinClient, comprimir, descomprimir, baseUrlDoAmbiente, BASE_URLS, BASE_URLS_ADN } from '../services/nfse/transport.js';
 import { RejeicaoSefinError, TransporteSefinError, CertificadoSefinError, erroDaResposta } from '../services/nfse/errors.js';
 import { subirSefinFake } from './helpers/sefin-fake.js';
 
@@ -55,6 +55,11 @@ describe('ambientes', () => {
     expect(baseUrlDoAmbiente('producao_restrita')).toBe(BASE_URLS.producao_restrita);
     expect(baseUrlDoAmbiente('producao')).toContain('sefin.nfse.gov.br');
     expect(baseUrlDoAmbiente('producao_restrita')).not.toBe(baseUrlDoAmbiente('producao'));
+  });
+
+  it('o ADN é outro host, onde vivem as consultas de eventos', () => {
+    expect(baseUrlDoAmbiente('producao', 'adn')).toBe(BASE_URLS_ADN.producao);
+    expect(baseUrlDoAmbiente('producao', 'adn')).not.toBe(baseUrlDoAmbiente('producao'));
   });
 
   it('recusa ambiente desconhecido em vez de cair em produção por engano', () => {
@@ -225,9 +230,20 @@ describe('consultarEventos', () => {
     expect(r[0].eventoXml).toBe(xmlEvento);
   });
 
-  it('404 vira lista vazia — nota sem aquele evento é o caso normal', async () => {
+  it('404 em JSON vira lista vazia — nota sem aquele evento é o caso normal', async () => {
     resposta = { status: 404, corpo: {} };
     expect(await client.consultarEventos(CHAVE, '101101')).toEqual([]);
+  });
+
+  // Tratar os dois 404 igual faria a verificação passar em silêncio com o
+  // endpoint quebrado — pior que não ter verificação nenhuma.
+  it('404 em HTML denuncia rota inexistente, em vez de fingir que não há eventos', async () => {
+    resposta = {
+      status: 404,
+      corpo: '<html><body>404 - File or directory not found.</body></html>',
+      tipo: 'text/html',
+    };
+    await expect(client.consultarEventos(CHAVE, '101101')).rejects.toThrow(/não existe neste host/);
   });
 });
 

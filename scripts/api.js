@@ -5,6 +5,7 @@
  *   npm run api -- /SefinNacional/nfse/{chave}/eventos/101101
  *   npm run api -- --ambiente producao /SefinNacional/nfse/{chave}
  *   npm run api -- --metodo HEAD /SefinNacional/dps/{idDps}
+ *   npm run api -- --host adn /contribuintes/DFe/0
  *
  * Existe porque a documentação da SEFIN diverge da API em pontos que só
  * aparecem no uso — o GET de eventos sem o tipo, por exemplo, responde 405.
@@ -14,6 +15,7 @@ import dotenv from 'dotenv';
 import { pool } from '../server/db/pool.js';
 import { carregarEmitente, criarClienteSefin } from '../server/services/nfse/client.js';
 import { SefinError } from '../server/services/nfse/errors.js';
+import { baseUrlDoAmbiente } from '../server/services/nfse/transport.js';
 
 dotenv.config({ path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env' });
 
@@ -34,6 +36,8 @@ try {
     const emitente = await carregarEmitente();
     const ambiente = opts.ambiente ?? emitente.ambiente;
     const { client } = criarClienteSefin(emitente, { ambiente });
+    // O ADN é outro host: as consultas de eventos e a distribuição vivem lá.
+    if (opts.host === 'adn') client.baseUrl = baseUrlDoAmbiente(ambiente, 'adn');
 
     console.log(`${opts.metodo ?? 'GET'} ${client.baseUrl}${caminho}  (${ambiente})\n`);
     const r = await client.requisitar(opts.metodo ?? 'GET', caminho, null, { aceitar404: true });
