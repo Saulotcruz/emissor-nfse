@@ -144,6 +144,18 @@ continua funcionando como alternativa, para clientes cadastrados antes do Tax ID
 
 Não emitem nota, por decisão de negócio: fatura de valor zero (trial) e moeda diferente de BRL.
 
+### Aviso de cada emissão
+
+A cada NFS-e autorizada, um e-mail sai com o **XML em anexo** — o documento fiscal em si; o
+DANFSe é representação. Traz número, chave de acesso, tomador, valor e os tributos apurados,
+e marca `[TESTE]` no assunto quando a nota é de Produção Restrita.
+
+Usa a mesma configuração SMTP dos alertas. Desligue com `NOTIFICAR_EMISSAO=0`, ou mande para
+outro destino com `EMISSAO_EMAIL_PARA`.
+
+Falha de e-mail **nunca** derruba a emissão: quando o aviso roda, a nota já está autorizada na
+SEFIN, e uma exceção aqui faria a emissão parecer malsucedida.
+
 ### Alertas por e-mail
 
 Com a emissão automática rodando, uma nota que falha não avisa ninguém: o webhook responde

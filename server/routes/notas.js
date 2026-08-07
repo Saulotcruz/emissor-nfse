@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { emitirNota, cancelarNota } from '../services/nfse/client.js';
+import { SefinError } from '../services/nfse/errors.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -74,6 +76,37 @@ router.get('/:id/xml', async (req, res) => {
   res.type('application/xml');
   res.attachment(`nfse-${nota.serie}-${nota.numero_dps}.xml`);
   res.send(xml);
+});
+
+/**
+ * Reemite uma nota que ficou em `erro` ou `pendente`.
+ * Reaproveita o mesmo número de DPS, e o client consulta a SEFIN pelo idDPS
+ * antes de reenviar — então clicar duas vezes não gera nota duplicada.
+ */
+router.post('/:id/reemitir', async (req, res) => {
+  try {
+    const r = await emitirNota(Number(req.params.id));
+    res.json({ ok: true, jaAutorizada: r.jaAutorizada, chaveAcesso: r.chaveAcesso, nota: r.nota });
+  } catch (e) {
+    res.status(e instanceof SefinError ? 422 : 400).json({
+      error: e.message,
+      codigo: e.codigo ?? null,
+      retentavel: e.retentavel ?? false,
+    });
+  }
+});
+
+router.post('/:id/cancelar', async (req, res) => {
+  const { motivo, codigoMotivo } = req.body ?? {};
+  try {
+    const r = await cancelarNota(Number(req.params.id), { motivo, codigoMotivo });
+    res.json({ ok: true, jaCancelada: r.jaCancelada, idPedido: r.idPedido ?? null });
+  } catch (e) {
+    res.status(e instanceof SefinError ? 422 : 400).json({
+      error: e.message,
+      codigo: e.codigo ?? null,
+    });
+  }
 });
 
 export default router;

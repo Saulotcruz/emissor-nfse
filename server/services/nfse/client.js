@@ -6,6 +6,7 @@ import { lerCertificado, assinarDps, assinarPedidoEvento } from './signer.js';
 import { SefinClient } from './transport.js';
 import { montarCancelamento, MOTIVO_CANCELAMENTO } from './evento-builder.js';
 import { SefinError, TransporteSefinError } from './errors.js';
+import { notificarEmissao } from '../alertas/notificacao.js';
 
 /**
  * Fachada da emissão: banco -> DPS -> assinatura -> SEFIN -> banco.
@@ -164,10 +165,29 @@ export async function emitirNota(notaId, { algoritmo = 'sha256', conferirAntes =
 
   try {
     const r = await client.enviarDps(assinado);
-    return gravarSucesso(notaId, r);
+    const resultado = await gravarSucesso(notaId, r);
+    await avisarPorEmail(resultado.nota, tomador, emitente);
+    return resultado;
   } catch (e) {
     await gravarErro(notaId, e);
     throw e;
+  }
+}
+
+/**
+ * A nota já está autorizada na SEFIN quando isto roda. Falha de e-mail é
+ * registrada no log e segue o jogo — derrubar aqui faria a emissão parecer
+ * malsucedida quando ela deu certo.
+ */
+async function avisarPorEmail(nota, tomador, emitente) {
+  try {
+    const r = await notificarEmissao({ nota, tomador, emitente });
+    if (r.enviado) console.log(`Nota #${nota.id}: aviso enviado para ${r.aceitos.join(', ')}`);
+    else if (r.motivo !== 'notificação desligada') {
+      console.warn(`Nota #${nota.id}: aviso não enviado (${r.motivo})`);
+    }
+  } catch (e) {
+    console.error(`Nota #${nota.id}: falha ao enviar o aviso por e-mail: ${e.message}`);
   }
 }
 
@@ -220,7 +240,8 @@ function extrairNumeroNfse(nfseXml) {
  * @param {string} p.motivo        entre 15 e 255 caracteres
  * @param {string} [p.codigoMotivo] '1' erro na emissão | '2' serviço não prestado | '9' outros
  */
-export async function cancelarNota(notaId, { motivo, codigoMotivo = MOTIVO_CANCELAMENTO.erro_emissao, algoritmo = 'sha256' } = {}) {
+export async function cancelarNota(notaId, { motivo, codigoMotivo, algoritmo = 'sha256' } = {}) {
+  const motivoCodigo = codigoMotivo ?? MOTIVO_CANCELAMENTO.erro_emissao;
   const [[nota]] = await pool.query('SELECT * FROM nota WHERE id = ?', [notaId]);
   if (!nota) throw new Error(`Nota ${notaId} não encontrada`);
   if (nota.status === 'cancelada') return { jaCancelada: true, nota };
@@ -233,7 +254,7 @@ export async function cancelarNota(notaId, { motivo, codigoMotivo = MOTIVO_CANCE
     emitente,
     chaveAcesso: nota.chave_acesso,
     motivo,
-    codigoMotivo,
+    codigoMotivo: motivoCodigo,
     ambiente: nota.ambiente,
   });
 
