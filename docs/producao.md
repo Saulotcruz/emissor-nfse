@@ -1,5 +1,29 @@
 # Virada para produção
 
+## Onde as coisas ficam no servidor
+
+| O quê | Caminho |
+|---|---|
+| Aplicação | `/var/www/emissor-nfse` |
+| Certificado A1 (`.pfx`) | `/opt/nfse/certs/`, com `chmod 600` |
+| Processo | pm2, nome `nfse-emissor` |
+| Porta | 3100, só no loopback — NAT publica apenas 80 e 443 |
+
+O certificado fica **fora** da pasta da aplicação de propósito: um `git pull` ou um deploy
+que limpe o diretório não pode levar junto a chave que assina documento fiscal.
+
+## Subir uma versão nova
+
+```bash
+cd /var/www/emissor-nfse && git pull origin master
+npm ci --omit=dev && npm run migrate && npm run build:web && pm2 restart nfse-emissor
+```
+
+`npm run migrate` é o passo que costuma ser esquecido: sem ele a interface nova aparece e
+quebra ao encostar numa coluna que ainda não existe.
+
+---
+
 Passo a passo para sair da Produção Restrita e emitir NFS-e com valor fiscal.
 
 A ordem importa: cada bloco é reversível até o último. Depois de emitir a primeira nota
