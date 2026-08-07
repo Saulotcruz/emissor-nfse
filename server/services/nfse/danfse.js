@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import {
@@ -68,11 +71,35 @@ const CINZA = '#eeeeee';
 const LINHA = '#000000';
 const TINTA = '#000000';
 
-const FONTE_TITULO_BLOCO = 9;
-const FONTE_ROTULO = 7; // mínimo permitido pela NT
-const FONTE_VALOR = 8.5;
+/**
+ * Corpos de fonte medidos no content stream de um DANFSe v2.0 emitido pela
+ * própria SEFIN — não são estimativa visual.
+ *
+ * O documento oficial usa Arial Bold para rótulos e títulos e MS Sans Serif
+ * para valores, e **quase tudo em 7pt**: o título de bloco tem o mesmo corpo do
+ * rótulo de campo, sem destaque de tamanho. Só o cabeçalho e o rodapé fogem
+ * disso.
+ */
+const FONTE_TITULO_BLOCO = 7;
+const FONTE_ROTULO = 7;
+const FONTE_VALOR = 7;
+const FONTE_PEQUENA = 6; // canhoto, identificação do ambiente e texto do QR
+const FONTE_TITULO_DOC = 9; // "DANFSe v2.0" e "Documento Auxiliar da NFS-e"
+const FONTE_MUNICIPIO = 8;
 
 export const URL_CONSULTA = process.env.NFSE_URL_CONSULTA || 'https://www.nfse.gov.br/consultapublica';
+
+/**
+ * Logomarca oficial da NFS-e, 540 × 107 px com transparência.
+ *
+ * É a mesma imagem que a SEFIN embute no DANFSe que ela própria gera —
+ * extraída de um documento autorizado, não redesenhada. Uma imitação vetorial
+ * ficava reconhecivelmente diferente, e a logomarca é elemento do layout
+ * obrigatório, não enfeite.
+ */
+const LOGO = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), 'assets', 'logo-nfse.png')
+);
 
 /* ----------------------------------------------------------------- formatação */
 
@@ -210,9 +237,11 @@ function corpoQueCabe(doc, conteudo, largura, ideal, minimo) {
  * `col` é o índice da coluna (0 a 3) e `cols` quantas ela ocupa. O texto que
  * não couber é cortado com reticências, como a NT determina.
  */
-function celula(doc, { col = 0, cols = 1, y, altura = ALT_LINHA, rotulo, valor, fundo, titulo, largura: larguraFixa }) {
+function celula(doc, { col = 0, cols = 1, y, altura = ALT_LINHA, rotulo, valor, fundo, titulo, pequeno, largura: larguraFixa }) {
   const x = COLUNA[col];
   const largura = larguraFixa ?? LARG[cols];
+  const corpoRotulo = pequeno ? FONTE_PEQUENA : FONTE_ROTULO;
+  const corpoValor = pequeno ? FONTE_PEQUENA : FONTE_VALOR;
 
   if (fundo || titulo) {
     doc.rect(x, y, largura, altura).fillColor(CINZA).fill();
@@ -221,7 +250,7 @@ function celula(doc, { col = 0, cols = 1, y, altura = ALT_LINHA, rotulo, valor, 
 
   if (titulo) {
     doc.fillColor(TINTA).font('Helvetica-Bold');
-    const corpo = corpoQueCabe(doc, rotulo, largura - 8, FONTE_TITULO_BLOCO, 7);
+    const corpo = corpoQueCabe(doc, rotulo, largura - 8, FONTE_TITULO_BLOCO, 6);
     doc.fontSize(corpo)
       .text(rotulo, x + 4, y + (altura - corpo) / 2 - 0.5, { width: largura - 8, lineBreak: false });
     return;
@@ -229,13 +258,13 @@ function celula(doc, { col = 0, cols = 1, y, altura = ALT_LINHA, rotulo, valor, 
 
   if (rotulo) {
     doc.fillColor(TINTA).font('Helvetica-Bold');
-    doc.fontSize(corpoQueCabe(doc, rotulo, largura - 8, FONTE_ROTULO, 6))
+    doc.fontSize(corpoQueCabe(doc, rotulo, largura - 8, corpoRotulo, 5.5))
       .text(rotulo, x + 4, y + 1.5, { width: largura - 8, lineBreak: false });
   }
-  doc.fillColor(TINTA).font('Helvetica').fontSize(FONTE_VALOR)
-    .text(texto(valor), x + 4, y + (rotulo ? 10 : 3), {
+  doc.fillColor(TINTA).font('Helvetica').fontSize(corpoValor)
+    .text(texto(valor), x + 4, y + (rotulo ? corpoRotulo + 2 : 3), {
       width: largura - 8,
-      height: altura - (rotulo ? 11 : 4),
+      height: altura - (rotulo ? corpoRotulo + 3 : 4),
       ellipsis: true,
     });
 }
@@ -302,29 +331,26 @@ function cabecalho(doc, d) {
   doc.rect(MARGEM, y, LARGURA, ALT_CABECALHO).fillColor('#f7f7f7').fill();
   doc.rect(MARGEM, y, LARGURA, ALT_CABECALHO).strokeColor(LINHA).lineWidth(0.5).stroke();
 
-  // Logomarca da NFS-e — 0,85 × 4,00 cm em 0,49 / 0,44.
-  doc.font('Helvetica-Bold').fontSize(15).fillColor('#0b8043')
-    .text('NFS', cm(0.49), cm(0.5), { continued: true })
-    .fillColor('#1a73e8').text('e');
-  doc.font('Helvetica').fontSize(5.5).fillColor('#555')
-    .text('Nota Fiscal de\nServiço eletrônica', cm(0.49) + 52, cm(0.55), { width: cm(2.4) });
+  // Logomarca da NFS-e — a NT reserva 0,85 × 4,00 cm em 0,49 / 0,44.
+  // A imagem tem proporção 540:107, então 4,00 cm de largura dão 0,79 de
+  // altura e ela cabe na caixa sem distorcer.
+  doc.image(LOGO, cm(0.49), cm(0.47), { width: cm(4) });
 
   // Quadro da descrição, centralizado no espaço de 10,19 cm a partir de 5,41.
-  doc.fillColor(TINTA).font('Helvetica-Bold').fontSize(11)
-    .text('DANFSe v2.0', COLUNA[1], y + 6, { width: LARG[2], align: 'center' });
-  doc.font('Helvetica-Bold').fontSize(10)
-    .text('Documento Auxiliar da NFS-e', COLUNA[1], y + 19, { width: LARG[2], align: 'center' });
+  doc.fillColor(TINTA).font('Helvetica-Bold').fontSize(FONTE_TITULO_DOC)
+    .text('DANFSe v2.0', COLUNA[1], y + 8, { width: LARG[2], align: 'center' })
+    .text('Documento Auxiliar da NFS-e', COLUNA[1], y + 20, { width: LARG[2], align: 'center' });
 
   // Quadro da identificação do município e do ambiente, à direita.
   // O município não é exibido quando o código de tributação nacional é 99.
   const municipio = String(d.servico?.codigoTributacaoNacional ?? '').startsWith('99')
     ? ''
     : `Município: ${texto(d.localEmissao)}`;
-  doc.font('Helvetica').fontSize(9).fillColor(TINTA)
-    .text(municipio, COLUNA[3], y + 4, { width: LARG[1], lineBreak: false, ellipsis: true });
-  doc.fontSize(6.5)
-    .text(`Ambiente Gerador: ${texto(d.ambienteGerador)}`, COLUNA[3], cm(0.9), { width: LARG[1] })
-    .text(`Tipo de Ambiente: ${texto(d.ambiente)}`, COLUNA[3], cm(1.13), { width: LARG[1] });
+  doc.font('Helvetica').fontSize(FONTE_MUNICIPIO).fillColor(TINTA)
+    .text(municipio, COLUNA[3], y + 5, { width: LARG[1], lineBreak: false });
+  doc.fontSize(FONTE_PEQUENA)
+    .text(`Ambiente Gerador: ${texto(d.ambienteGerador)}`, COLUNA[3], cm(0.94), { width: LARG[1] })
+    .text(`Tipo de Ambiente: ${texto(d.ambiente)}`, COLUNA[3], cm(1.16), { width: LARG[1] });
 }
 
 /** Bloco "DADOS DA NFS-e": chave de acesso, numeração, datas e QR Code. */
@@ -359,7 +385,7 @@ function blocoDados(doc, d, qr) {
 
   // QR Code de 1,52 cm exatos, na posição fixada pela NT.
   doc.image(qr, QR_X, QR_Y, { width: QR_LADO, height: QR_LADO });
-  doc.font('Helvetica').fontSize(5.8).fillColor(TINTA)
+  doc.font('Helvetica').fontSize(FONTE_PEQUENA).fillColor(TINTA)
     .text(
       'A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e',
       COMPL_QR.x, COMPL_QR.y,
@@ -571,8 +597,12 @@ function canhoto(doc, d) {
   }
 
   linha(doc, CANHOTO_Y, [
-    { col: 0, rotulo: 'DATA CIENTIFICAÇÃO:', valor: '' },
-    { col: 1, rotulo: 'IDENTIFICAÇÃO E ASSINATURA', valor: '' },
-    { col: 2, cols: 2, rotulo: 'Nº NFS-e / CHAVE NFS-e', valor: `${texto(d.numeroNfse)} / ${texto(d.chaveAcesso)}` },
+    { col: 0, rotulo: 'DATA CIENTIFICAÇÃO:', valor: '', pequeno: true },
+    { col: 1, rotulo: 'IDENTIFICAÇÃO E ASSINATURA', valor: '', pequeno: true },
+    {
+      col: 2, cols: 2, pequeno: true,
+      rotulo: 'Nº NFS-e / CHAVE NFS-e',
+      valor: `${texto(d.numeroNfse)} / ${texto(d.chaveAcesso)}`,
+    },
   ], ALT_CANHOTO);
 }

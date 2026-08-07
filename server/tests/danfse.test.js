@@ -1,6 +1,37 @@
+import zlib from 'node:zlib';
 import { describe, it, expect } from 'vitest';
 import { lerNfse } from '../services/nfse/danfse-dados.js';
 import { gerarDanfse } from '../services/nfse/danfse.js';
+
+/**
+ * Texto desenhado no PDF, lido dos content streams.
+ *
+ * Três detalhes tornam isso menos direto do que parece: o pdfkit comprime os
+ * streams, escreve o texto em hexadecimal (`<43414e...> TJ`) e ainda o quebra
+ * em pedaços para aplicar kerning. Daí descomprimir, decodificar e concatenar.
+ *
+ * Comparar tamanho de arquivo, que era o que este teste fazia antes, não
+ * serve: dois documentos diferentes podem comprimir para o mesmo número de
+ * bytes — foi exatamente o que aconteceu com "CANCELADA" e "SUBSTITUÍDA"
+ * depois que a logomarca entrou.
+ */
+function textoDoPdf(pdf) {
+  const partes = [];
+  for (const m of pdf.toString('latin1').matchAll(/stream\r?\n/g)) {
+    const inicio = m.index + m[0].length;
+    const fim = pdf.indexOf('endstream', inicio, 'latin1');
+    let fluxo;
+    try {
+      fluxo = zlib.inflateSync(pdf.subarray(inicio, fim)).toString('latin1');
+    } catch {
+      continue; // stream que não é texto comprimido (imagem, fonte)
+    }
+    for (const t of fluxo.matchAll(/<([0-9a-fA-F]+)>|\(([^()\\]*)\)/g)) {
+      partes.push(t[1] ? Buffer.from(t[1], 'hex').toString('latin1') : t[2]);
+    }
+  }
+  return partes.join('');
+}
 
 // NFS-e no formato que a SEFIN devolve, com os valores conferidos contra uma
 // nota real: R$ 1,00 → ISS 0,02 · PIS 0,01 · COFINS 0,03.
@@ -160,10 +191,43 @@ describe('gerarDanfse', () => {
     expect(cancelada.length).toBeGreaterThan(normal.length);
   });
 
+  // O layout da NT 008/2026 é fixo: faltar um bloco é documento fora do padrão.
+  it('imprime todos os blocos obrigatórios da NT', async () => {
+    const t = textoDoPdf(await gerarDanfse(NFSE_XML));
+    for (const bloco of [
+      'DANFSe v2.0',
+      'CHAVE DE ACESSO DA NFS-e',
+      'PRESTADOR / FORNECEDOR',
+      'TOMADOR / ADQUIRENTE',
+      'DESTINAT', // faixa de não identificado
+      'INTERMEDI',
+      'SERVIÇO PRESTADO',
+      'TRIBUTAÇÃO MUNICIPAL (ISSQN)',
+      'TRIBUTAÇÃO FEDERAL (EXCETO CBS)',
+      'TRIBUTAÇÃO IBS/CBS',
+      'VALOR TOTAL DA NFS-e',
+      'INFORMAÇÕES COMPLEMENTARES',
+      'DATA CIENTIFICAÇÃO:', // canhoto
+    ]) {
+      expect(t, `bloco ausente: ${bloco}`).toContain(bloco);
+    }
+  });
+
+  // Paridade XML–PDF: o documento mostra o que o XML autorizado diz.
+  it('imprime os valores vindos do XML, não do banco', async () => {
+    const t = textoDoPdf(await gerarDanfse(NFSE_XML));
+    expect(t).toContain('31567002251675482000110000000000003026087376456690');
+    expect(t).toContain('51.675.482/0001-10');
+    expect(t).toContain('19.131.243/0001-97');
+    expect(t).toContain('01.05.01');
+    expect(t).toContain('Operação Tributável'); // descrição, não o código "1"
+    expect(t).toContain('Prestador'); // tpEmit=1 por extenso
+  });
+
   it('distingue cancelada de substituída', async () => {
-    const a = await gerarDanfse(NFSE_XML, { cancelada: true });
-    const b = await gerarDanfse(NFSE_XML, { substituida: true });
-    expect(a.length).not.toBe(b.length);
+    expect(textoDoPdf(await gerarDanfse(NFSE_XML, { cancelada: true }))).toContain('CANCELADA');
+    expect(textoDoPdf(await gerarDanfse(NFSE_XML, { substituida: true }))).toContain('SUBSTITU');
+    expect(textoDoPdf(await gerarDanfse(NFSE_XML))).not.toContain('CANCELADA');
   });
 
   // Produção Restrita não tem efeito fiscal; quem imprime precisa ver isso.

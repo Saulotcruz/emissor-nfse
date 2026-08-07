@@ -170,18 +170,37 @@ Detalhes que a tabela impõe e são fáceis de errar:
 | Regra | Onde |
 |---|---|
 | QR Code de 1,52 cm × 1,52 cm | `QR_LADO` em `danfse.js` |
-| Fonte Arial/MS Sans Serif, mínimo 7pt | Helvetica (métrica equivalente); valores em 8,5pt |
 | Paridade XML–PDF | dados lidos do XML autorizado, nunca do banco |
 | Marca d'água em documento cancelado ou substituído | `marcaDagua()` |
 
 O estado de cancelamento **não** vem do XML: o `cStat` da NFS-e nunca muda para cancelada.
 Ele é passado por fora, a partir do status da nota.
 
-Uma tensão real, registrada: vários rótulos do próprio anexo não cabem em 7pt na coluna de
-5,09 cm que o anexo lhes dá — "Base de Cálculo Após Exclusões e Reduções", por exemplo. O
-gerador encolhe o **rótulo** até 6pt para caber numa linha; os **valores** ficam sempre em
-8,5pt. O DANFSe emitido pela própria SEFIN faz o mesmo. Se o mínimo de 7pt for lido como
-valendo também para rótulos, esse é o ponto a rever.
+### Tipografia e logomarca
+
+Os corpos de fonte não foram estimados a olho: saíram do *content stream* de um DANFSe v2.0
+emitido pela própria SEFIN (`/F0 7 Tf`, `/F1 7 Tf`, …). O documento oficial usa **Arial Bold**
+nos rótulos e **MS Sans Serif** nos valores.
+
+| Elemento | Corpo |
+|---|---|
+| Título de bloco e rótulo de campo | 7pt negrito — o **mesmo** corpo; o título não é maior |
+| Valor | 7pt |
+| "DANFSe v2.0" / "Documento Auxiliar da NFS-e" | 9pt negrito |
+| "Município: …" | 8pt |
+| Ambiente, texto do QR e canhoto | 6pt |
+
+O gerador usa Helvetica, métrica equivalente de Arial e embutida em todo leitor de PDF —
+embutir a Arial exigiria distribuir o arquivo da fonte, que é licenciado.
+
+A **logomarca** é a imagem oficial (540 × 107 px com transparência), extraída de um DANFSe
+autorizado e guardada em `server/services/nfse/assets/logo-nfse.png`. Uma reconstrução
+vetorial ficava reconhecivelmente diferente, e a logomarca é elemento do layout obrigatório.
+
+Uma tensão registrada: vários rótulos do próprio anexo não cabem em 7pt na coluna de 5,09 cm
+que o anexo lhes dá — "Base de Cálculo Após Exclusões e Reduções", por exemplo. O gerador
+encolhe o **rótulo** até 6pt para caber numa linha; os **valores** ficam sempre em 7pt, o
+mínimo que a NT exige. O DANFSe da própria SEFIN também usa 6pt em parte dos rótulos.
 
 O layout foi conferido campo a campo contra um DANFSe v2.0 real emitido pela SEFIN. Ainda
 assim, vale a validação de um contador antes de tratá-lo como definitivo.
