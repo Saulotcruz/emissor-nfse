@@ -15,7 +15,8 @@
     "cert": "node scripts/verificar-certificado.js",
     "emitir-teste": "node scripts/emitir-teste.js",
     "tomador": "node scripts/cadastrar-tomador.js",
-    "cancelar": "node scripts/cancelar.js"
+    "cancelar": "node scripts/cancelar.js",
+    "alertas": "node scripts/verificar-alertas.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
     "express-session": "^1.18.0",
     "mysql2": "^3.11.0",
     "node-forge": "^1.4.0",
+    "nodemailer": "^9.0.5",
     "xml-crypto": "^6.1.2"
   },
   "devDependencies": {

@@ -144,6 +144,26 @@ continua funcionando como alternativa, para clientes cadastrados antes do Tax ID
 
 Não emitem nota, por decisão de negócio: fatura de valor zero (trial) e moeda diferente de BRL.
 
+### Alertas por e-mail
+
+Com a emissão automática rodando, uma nota que falha não avisa ninguém: o webhook responde
+200 e o erro fica só no banco. O comando abaixo varre o sistema e manda e-mail **só quando há
+o que relatar**:
+
+```bash
+npm run alertas
+```
+
+Verifica notas rejeitadas pela SEFIN, notas presas sem envio, eventos da Stripe que não viraram
+nota e a validade do certificado A1. Opções: `--dry-run` (mostra sem enviar), `--testar` (só
+manda um e-mail de teste) e `--reemitir` (tenta reenviar as notas presas antes de relatar).
+
+No cron, uma vez por dia:
+
+```
+0 8 * * * cd /var/www/emissor-nfse && /usr/bin/node scripts/verificar-alertas.js >> logs/alertas.log 2>&1
+```
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):
