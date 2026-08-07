@@ -22,7 +22,8 @@
     "sincronizar": "node scripts/sincronizar.js",
     "api": "node scripts/api.js",
     "danfse": "node scripts/danfse.js",
-    "contratos": "node scripts/emitir-contratos.js"
+    "contratos": "node scripts/emitir-contratos.js",
+    "deploy": "npm ci --omit=dev && npm --prefix web ci && npm run build:web && npm run migrate"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

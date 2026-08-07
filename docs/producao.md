@@ -15,12 +15,19 @@ que limpe o diretório não pode levar junto a chave que assina documento fiscal
 ## Subir uma versão nova
 
 ```bash
-cd /var/www/emissor-nfse && git pull origin master
-npm ci --omit=dev && npm run migrate && npm run build:web && pm2 restart nfse-emissor
+cd /var/www/emissor-nfse && git pull origin master && npm run deploy && pm2 restart nfse-emissor
 ```
 
-`npm run migrate` é o passo que costuma ser esquecido: sem ele a interface nova aparece e
-quebra ao encostar numa coluna que ainda não existe.
+`npm run deploy` faz, na ordem: dependências do servidor, dependências do painel, build do
+painel e migração.
+
+Duas armadilhas que ele existe para evitar:
+
+- **`web` não é workspace.** `npm ci` na raiz não instala nada dentro de `web/`, e o build
+  precisa do vite, que é devDependency de lá. Por isso o `npm --prefix web ci` separado — e
+  sem `--omit=dev`, senão o vite não vem.
+- **Esquecer a migração.** A interface nova aparece e quebra ao encostar numa tabela ou
+  coluna que ainda não existe. Os scripts hoje avisam o que fazer, mas melhor não chegar lá.
 
 ## Cron
 

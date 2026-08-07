@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { pool } from '../server/db/pool.js';
 import { emitirDoDia, competenciasPendentes } from '../server/services/contratos/emissao.js';
 import { hojeLocal } from '../server/services/contratos/calendario.js';
+import { explicar } from '../server/db/erros.js';
 
 /**
  * Emissão dos contratos recorrentes. É o que a cron chama.
@@ -58,7 +59,7 @@ try {
   // Código de saída diferente de zero para a cron conseguir alertar.
   process.exit(falhas ? 1 : 0);
 } catch (e) {
-  console.error(`Falha ao emitir contratos: ${e.message}`);
+  console.error(`Falha ao emitir contratos: ${explicar(e)}`);
   await pool.end();
   process.exit(1);
 }
