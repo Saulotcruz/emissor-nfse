@@ -8,6 +8,12 @@ const router = Router();
 
 export const SENHA_MINIMA = 10;
 
+/**
+ * Hash de uma senha que ninguém tem, com o mesmo custo dos hashes reais.
+ * Serve só para gastar o mesmo tempo quando o e-mail não existe.
+ */
+const HASH_DESCARTAVEL = bcrypt.hashSync('senha-que-nao-existe', 12);
+
 router.post('/login', limitarLogin, async (req, res) => {
   const { email, senha } = req.body ?? {};
   if (!email || !senha) return res.status(400).json({ error: 'E-mail e senha são obrigatórios' });
@@ -17,7 +23,13 @@ router.post('/login', limitarLogin, async (req, res) => {
     [String(email).trim().toLowerCase()]
   );
   // Mensagem genérica de propósito: não revela se o e-mail existe.
+  //
+  // O tempo de resposta também não pode revelar. Sem o `compare` contra um
+  // hash descartável, e-mail inexistente responderia na hora e e-mail válido
+  // demoraria os ~100ms do bcrypt — diferença suficiente para varrer uma lista
+  // e descobrir quais contas existem antes de atacar a senha.
   if (!user || !user.ativo) {
+    await bcrypt.compare(senha, HASH_DESCARTAVEL);
     registrarFalha(req);
     return res.status(401).json({ error: 'Credenciais inválidas' });
   }

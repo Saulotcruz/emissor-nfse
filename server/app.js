@@ -3,6 +3,7 @@ import 'express-async-errors'; // faz erros de rotas async caírem no error hand
 import session from 'express-session';
 import MySQLStoreFactory from 'express-mysql-session';
 import { pool } from './db/pool.js';
+import { cabecalhosDeSeguranca, mesmaOrigem } from './middleware/seguranca.js';
 import authRoutes from './routes/auth.js';
 import tomadoresRoutes from './routes/tomadores.js';
 import notasRoutes from './routes/notas.js';
@@ -32,6 +33,8 @@ function segredoDeSessao() {
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
+  app.disable('x-powered-by'); // não anunciar a stack para quem varre
+  app.use(cabecalhosDeSeguranca);
 
   // O webhook da Stripe precisa do corpo RAW para conferir a assinatura: a
   // Stripe assina os bytes exatos, e reserializar o JSON invalidaria a conferência.
@@ -61,6 +64,9 @@ export function createApp() {
   );
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  // Vale para todo /api, inclusive o webhook — que passa porque a Stripe não
+  // manda Origin, e quem a autentica é a assinatura HMAC.
+  app.use('/api', mesmaOrigem);
   app.use('/api', authRoutes);
   app.use('/api/tomadores', tomadoresRoutes);
   app.use('/api/notas', notasRoutes);
