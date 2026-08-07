@@ -170,6 +170,21 @@ outro destino com `EMISSAO_EMAIL_PARA`.
 Falha de e-mail **nunca** derruba a emissão: quando o aviso roda, a nota já está autorizada na
 SEFIN, e uma exceção aqui faria a emissão parecer malsucedida.
 
+### DANFSe em PDF
+
+```bash
+npm run danfse -- --nota 3
+```
+
+No painel, o botão **PDF** ao lado do XML. O arquivo é gerado sob demanda pelo ambiente
+nacional e **não é guardado**: o layout muda com as notas técnicas, e um PDF salvo hoje
+envelhece. O documento fiscal é o XML; o DANFSe é representação.
+
+O caminho da API não está na documentação pública, então o cliente tenta os candidatos em
+ordem e usa o primeiro que devolver PDF de verdade — a assinatura `%PDF` é conferida, para
+um HTML de erro com status 200 não virar arquivo corrompido. O comando informa qual endpoint
+respondeu.
+
 ### Conferindo cancelamentos feitos por fora
 
 Cancelar pelo Portal Nacional não avisa este sistema, e o XML da nota também não denuncia: o

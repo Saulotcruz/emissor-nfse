@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
-import { emitirNota, cancelarNota, sincronizarNotas } from '../services/nfse/client.js';
+import { emitirNota, cancelarNota, sincronizarNotas, baixarDanfse } from '../services/nfse/client.js';
 import { SefinError } from '../services/nfse/errors.js';
 
 const router = Router();
@@ -80,6 +80,22 @@ router.get('/:id/xml', async (req, res) => {
   res.type('application/xml');
   res.attachment(`nfse-${nota.serie}-${nota.numero_dps}.xml`);
   res.send(xml);
+});
+
+/**
+ * DANFSe em PDF, gerado pelo ambiente nacional sob demanda.
+ * Não guardamos o arquivo: o layout muda com as notas técnicas e um PDF salvo
+ * hoje envelhece. O documento fiscal é o XML.
+ */
+router.get('/:id/danfse', async (req, res) => {
+  try {
+    const { pdf, nota } = await baixarDanfse(Number(req.params.id));
+    res.type('application/pdf');
+    res.attachment(`danfse-${nota.numero_nfse ?? nota.id}.pdf`);
+    res.send(pdf);
+  } catch (e) {
+    res.status(e instanceof SefinError ? 422 : 400).json({ error: e.message });
+  }
 });
 
 /**

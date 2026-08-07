@@ -20,7 +20,8 @@
     "qa": "npm run lint && npm test",
     "ambiente": "node scripts/trocar-ambiente.js",
     "sincronizar": "node scripts/sincronizar.js",
-    "api": "node scripts/api.js"
+    "api": "node scripts/api.js",
+    "danfse": "node scripts/danfse.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

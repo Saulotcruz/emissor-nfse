@@ -370,3 +370,21 @@ export async function sincronizarNotas({ limite = 500, dias = 90 } = {}) {
   }
   return resultados;
 }
+
+/**
+ * Baixa o DANFSe de uma nota autorizada.
+ * Usa o ambiente da própria nota, não o do emitente — uma nota antiga de teste
+ * não existe no ambiente de produção.
+ */
+export async function baixarDanfse(notaId) {
+  const [[nota]] = await pool.query('SELECT * FROM nota WHERE id = ?', [notaId]);
+  if (!nota) throw new Error(`Nota ${notaId} não encontrada`);
+  if (!nota.chave_acesso) {
+    throw new Error('Nota sem chave de acesso: o DANFSe só existe depois de autorizada');
+  }
+
+  const emitente = await carregarEmitente();
+  const { client } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
+  const { pdf, caminho } = await client.baixarDanfse(nota.chave_acesso);
+  return { pdf, caminho, nota };
+}

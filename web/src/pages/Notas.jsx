@@ -243,6 +243,9 @@ export default function Notas() {
                       {n.status === 'autorizada' && (
                         <>
                           <a className="btn btn-subtle" href={`/api/notas/${n.id}/xml`}>XML</a>
+                          {/* O PDF é gerado sob demanda pelo ambiente nacional;
+                              o XML é o documento fiscal, o PDF é representação. */}
+                          <a className="btn btn-subtle" href={`/api/notas/${n.id}/danfse`} target="_blank" rel="noreferrer">PDF</a>
                           <button
                             className="btn btn-danger"
                             disabled={emAcao}

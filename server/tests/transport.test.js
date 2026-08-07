@@ -255,6 +255,28 @@ describe('consultarEventos', () => {
   });
 });
 
+describe('baixarDanfse', () => {
+  it('devolve o PDF e informa qual caminho respondeu', async () => {
+    const pdfFalso = '%PDF-1.4\n conteudo';
+    resposta = { status: 200, corpo: pdfFalso, tipo: 'application/pdf' };
+    const r = await client.baixarDanfse(CHAVE);
+    expect(r.pdf.subarray(0, 4).toString()).toBe('%PDF');
+    expect(r.caminho).toContain(CHAVE);
+  });
+
+  // Um HTML de erro com status 200 viraria um "PDF" corrompido na mão do
+  // usuário; a assinatura do arquivo é o que separa os dois casos.
+  it('recusa resposta 200 que não seja PDF', async () => {
+    resposta = { status: 200, corpo: '<html>erro</html>', tipo: 'text/html' };
+    await expect(client.baixarDanfse(CHAVE)).rejects.toThrow(/não PDF/);
+  });
+
+  it('relata todas as tentativas quando nenhuma responde', async () => {
+    resposta = { status: 404, corpo: {} };
+    await expect(client.baixarDanfse(CHAVE)).rejects.toThrow(/Tentativas:.*404/s);
+  });
+});
+
 describe('segurança do transporte', () => {
   it('mantém a verificação do certificado do servidor ligada', () => {
     const c = new SefinClient({ ambiente: 'producao', chavePem: fake.chavePem, certPem: fake.certPem });
