@@ -85,6 +85,9 @@ export default function Layout() {
             <NavLink to="/" end className={navClass}>
               Notas
             </NavLink>
+            <NavLink to="/clientes" className={navClass}>
+              Clientes
+            </NavLink>
             <NavLink to="/contratos" className={navClass}>
               Contratos
             </NavLink>

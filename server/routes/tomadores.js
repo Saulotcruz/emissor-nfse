@@ -81,7 +81,9 @@ router.put('/:id', requireEmissao, async (req, res) => {
   if (!atual) return res.status(404).json({ error: 'Tomador não encontrado' });
 
   const dados = montarPayload(req.body ?? {}, { origem: atual.origem });
-  const erro = validar(dados);
+  // Valida o resultado da alteração, não o pedaço enviado: quem manda só o
+  // e-mail continua com documento e razão social válidos.
+  const erro = validar({ ...atual, ...dados });
   if (erro) return res.status(400).json({ error: erro });
 
   const cols = CAMPOS.filter((c) => dados[c] !== undefined);
@@ -111,9 +113,15 @@ router.delete('/:id', requireEmissao, async (req, res) => {
 });
 
 function montarPayload(body, { origem }) {
-  const documento = apenasDigitos(body.documento);
-  const dados = { ...body, documento, origem: body.origem ?? origem };
-  if (documento) dados.tipo_doc = tipoDocumento(documento) ?? body.tipo_doc;
+  const dados = { ...body, origem: body.origem ?? origem };
+  // Só normaliza o documento se ele veio. Antes, um PUT parcial (trocar só o
+  // e-mail, ou só reativar) chegava aqui com `documento: ''` e era recusado
+  // como "Documento é obrigatório" — o campo nem estava sendo alterado.
+  if (body.documento !== undefined) {
+    const documento = apenasDigitos(body.documento);
+    dados.documento = documento;
+    if (documento) dados.tipo_doc = tipoDocumento(documento) ?? body.tipo_doc;
+  }
   if (dados.cep) dados.cep = apenasDigitos(dados.cep);
   if (dados.telefone) dados.telefone = apenasDigitos(dados.telefone);
   return dados;
