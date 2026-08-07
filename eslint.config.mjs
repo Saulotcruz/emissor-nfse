@@ -35,6 +35,22 @@ export default [
     },
   },
   {
+    // Arquivos .cjs são CommonJS de verdade (o pm2 exige isso para o ecosystem),
+    // então precisam de sourceType próprio e dos globais do CommonJS.
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globaisNode,
+        module: 'writable',
+        require: 'readonly',
+        exports: 'writable',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      },
+    },
+  },
+  {
     files: ['server/tests/**/*.js'],
     languageOptions: {
       globals: {
