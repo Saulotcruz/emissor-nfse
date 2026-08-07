@@ -164,6 +164,19 @@ No cron, uma vez por dia:
 0 8 * * * cd /var/www/emissor-nfse && /usr/bin/node scripts/verificar-alertas.js >> logs/alertas.log 2>&1
 ```
 
+### Ambiente fiscal
+
+```bash
+npm run ambiente                  # mostra a situação atual
+npm run ambiente -- --producao    # passa a emitir nota válida (pede confirmação)
+```
+
+⚠️ Mudar `NFSE_AMBIENTE` no `.env` **não** troca o ambiente: essa variável só é lida pelo
+`seed`, que não altera registro existente. Quem vale é a coluna `emitente.ambiente`, e este
+comando é o único jeito de mudá-la fora do painel.
+
+O passo a passo completo da virada está em [docs/producao.md](docs/producao.md).
+
 ### Testes
 
 Precisam de um MySQL acessível e de um `.env.test` (veja `.env.test.example`):

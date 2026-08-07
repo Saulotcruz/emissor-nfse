@@ -17,7 +17,8 @@
     "tomador": "node scripts/cadastrar-tomador.js",
     "cancelar": "node scripts/cancelar.js",
     "alertas": "node scripts/verificar-alertas.js",
-    "qa": "npm run lint && npm test"
+    "qa": "npm run lint && npm test",
+    "ambiente": "node scripts/trocar-ambiente.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
