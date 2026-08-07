@@ -158,6 +158,17 @@ describe('configuracaoSmtp', () => {
     expect(configuracaoSmtp(base).port).toBe(587);
   });
 
+  // Alias de grupo não devolve a mensagem ao autor; listar as pessoas resolve.
+  it('aceita vários destinatários separados por vírgula', () => {
+    const cfg = configuracaoSmtp({
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_USER: 'a@b.c',
+      SMTP_PASS: 'x',
+      ALERTA_EMAIL_PARA: ' um@ex.com ,dois@ex.com,  ',
+    });
+    expect(cfg.para).toBe('um@ex.com, dois@ex.com');
+  });
+
   it('usa o próprio usuário como remetente quando ALERTA_EMAIL_DE não é definido', () => {
     const cfg = configuracaoSmtp({
       SMTP_HOST: 'smtp.gmail.com',

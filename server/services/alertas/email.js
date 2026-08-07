@@ -22,7 +22,15 @@ export function configuracaoSmtp(env = process.env) {
     secure: porta === 465,
     auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
     de: env.ALERTA_EMAIL_DE || env.SMTP_USER,
-    para: env.ALERTA_EMAIL_PARA,
+    // Aceita vários destinatários separados por vírgula. Endereçar as pessoas
+    // diretamente é mais confiável que usar um alias de grupo: o padrão do
+    // Google Groups é NÃO devolver a mensagem ao próprio autor, então quem
+    // envia não recebe a própria notificação.
+    para: String(env.ALERTA_EMAIL_PARA)
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean)
+      .join(', '),
   };
 }
 
