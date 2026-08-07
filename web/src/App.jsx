@@ -7,6 +7,7 @@ import Notas from './pages/Notas.jsx';
 import Configuracao from './pages/Configuracao.jsx';
 import Auditoria from './pages/Auditoria.jsx';
 import Usuarios from './pages/Usuarios.jsx';
+import Contratos from './pages/Contratos.jsx';
 import TrocarSenha from './pages/TrocarSenha.jsx';
 
 export const AuthContext = createContext(null);
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Notas />} />
+          <Route path="/contratos" element={<Contratos />} />
           <Route path="/configuracao" element={<Configuracao />} />
           <Route path="/auditoria" element={<Auditoria />} />
           <Route path="/usuarios" element={<Usuarios />} />

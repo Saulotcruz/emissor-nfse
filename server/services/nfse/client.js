@@ -46,6 +46,8 @@ export async function reservarNota({
   origem = 'manual',
   stripeInvoiceId = null,
   stripeSubscriptionId = null,
+  contratoId = null,
+  competenciaRef = null,
 }) {
   return withTransaction(async (conn) => {
     const [[emitente]] = await conn.query('SELECT * FROM emitente ORDER BY id LIMIT 1 FOR UPDATE');
@@ -62,15 +64,18 @@ export async function reservarNota({
     const [r] = await conn.query(
       `INSERT INTO nota
          (tomador_id, servico_id, stripe_invoice_id, stripe_subscription_id, origem,
+          contrato_id, competencia_ref,
           serie, numero_dps, id_dps, competencia, valor_servico, descricao_servico,
           municipio_incidencia_iss, ambiente, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURDATE()), ?, ?, ?, ?, 'pendente')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURDATE()), ?, ?, ?, ?, 'pendente')`,
       [
         tomadorId,
         servicoId,
         stripeInvoiceId,
         stripeSubscriptionId,
         origem,
+        contratoId,
+        competenciaRef,
         emitente.serie_dps,
         numeroDps,
         idDps,

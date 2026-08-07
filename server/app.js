@@ -11,6 +11,7 @@ import mfaRoutes from './routes/mfa.js';
 import auditoriaRoutes from './routes/auditoria.js';
 import usuariosRoutes from './routes/usuarios.js';
 import tomadoresRoutes from './routes/tomadores.js';
+import contratosRoutes from './routes/contratos.js';
 import notasRoutes from './routes/notas.js';
 import configRoutes from './routes/config.js';
 import stripeRoutes from './routes/stripe.js';
@@ -101,6 +102,7 @@ export function createApp() {
   app.use('/api/auditoria', auditoriaRoutes);
   app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/tomadores', tomadoresRoutes);
+  app.use('/api/contratos', contratosRoutes);
   // Operações que falam com a SEFIN ou geram PDF custam muito mais que uma
   // listagem — e o teto geral é largo demais para segurá-las.
   app.use('/api/notas', limiteOperacoesCaras, notasRoutes);

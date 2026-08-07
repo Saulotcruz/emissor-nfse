@@ -35,6 +35,9 @@ export const ACOES = {
   USUARIO_CRIADO: 'usuario_criado',
   USUARIO_ALTERADO: 'usuario_alterado',
   USUARIO_SENHA_REDEFINIDA: 'usuario_senha_redefinida',
+  CONTRATO_CRIADO: 'contrato_criado',
+  CONTRATO_ALTERADO: 'contrato_alterado',
+  CONTRATOS_EXECUTADOS: 'contratos_executados',
 };
 
 /**

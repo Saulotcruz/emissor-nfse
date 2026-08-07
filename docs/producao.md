@@ -22,6 +22,25 @@ npm ci --omit=dev && npm run migrate && npm run build:web && pm2 restart nfse-em
 `npm run migrate` é o passo que costuma ser esquecido: sem ele a interface nova aparece e
 quebra ao encostar numa coluna que ainda não existe.
 
+## Cron
+
+```cron
+*/30 * * * * cd /var/www/emissor-nfse && npm run sincronizar >> /var/log/nfse-sync.log 2>&1
+*/30 * * * * cd /var/www/emissor-nfse && npm run contratos  >> /var/log/nfse-contratos.log 2>&1
+0 8 * * *    cd /var/www/emissor-nfse && npm run alertas    >> /var/log/nfse-alertas.log 2>&1
+```
+
+`npm run contratos` de 30 em 30 minutos parece demais para algo mensal, mas é de propósito:
+se o servidor estiver fora do ar no dia marcado, a emissão acontece assim que ele voltar, no
+mesmo dia. Rodar repetido é seguro — o índice único `(contrato_id, competencia_ref)` impede
+segunda nota na mesma competência.
+
+Para ver o que a próxima execução faria, sem emitir nada:
+
+```bash
+npm run contratos -- --simular
+```
+
 ---
 
 Passo a passo para sair da Produção Restrita e emitir NFS-e com valor fiscal.

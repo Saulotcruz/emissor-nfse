@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { pool } from '../../db/pool.js';
 import { lerCertificado, diasParaVencer } from '../nfse/signer.js';
+import { competenciasPendentes } from '../contratos/emissao.js';
 
 /**
  * Levantamento do que precisa de atenção humana.
@@ -84,10 +85,11 @@ export function situacaoCertificado() {
  * — e nesse caso o cron não manda e-mail nenhum.
  */
 export async function coletarAlertas() {
-  const [erros, pendentes, eventos] = await Promise.all([
+  const [erros, pendentes, eventos, contratosAtrasados] = await Promise.all([
     notasComErro(),
     notasPendentes(),
     eventosComProblema(),
+    competenciasPendentes(),
   ]);
   const certificado = situacaoCertificado();
 
@@ -123,6 +125,20 @@ export async function coletarAlertas() {
       titulo: `${eventos.length} evento(s) da Stripe sem nota`,
       detalhe: eventos.map((e) => `${e.stripe_event_id} — ${e.erro_mensagem ?? 'não processado'}`),
       acao: 'Alguns são normais (trial, moeda estrangeira). Confira os demais.',
+    });
+  }
+
+  // A emissão automática só cobre o mês corrente. Uma competência que passou
+  // em branco não é emitida sozinha — é decisão de quem opera, e por isso vira
+  // alerta em vez de virar nota.
+  if (contratosAtrasados.length) {
+    problemas.push({
+      gravidade: GRAVIDADE.critico,
+      titulo: `${contratosAtrasados.length} competência(s) de contrato sem nota`,
+      detalhe: contratosAtrasados.map(
+        (c) => `contrato ${c.contratoId} — ${c.competenciaRef} — previsto para ${c.dataEmissao}`
+      ),
+      acao: 'Emita pelo painel, em Contratos. A automática não cobre mês passado.',
     });
   }
 
