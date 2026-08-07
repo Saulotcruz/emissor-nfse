@@ -205,6 +205,32 @@ describe('eventos', () => {
   });
 });
 
+describe('consultarEventos', () => {
+  // Sem o tipo, o caminho é o do POST de registro e a SEFIN responde 405.
+  it('inclui o tipo do evento no caminho', async () => {
+    resposta = { status: 200, corpo: [] };
+    await client.consultarEventos(CHAVE, '101101');
+    expect(fake.requisicoes.at(-1).caminho).toBe(`/SefinNacional/nfse/${CHAVE}/eventos/101101`);
+    expect(fake.requisicoes.at(-1).metodo).toBe('GET');
+  });
+
+  it('descomprime o XML de cada evento encontrado', async () => {
+    const xmlEvento = '<evento versao="1.01"><infEvento/></evento>';
+    resposta = {
+      status: 200,
+      corpo: [{ eventoXmlGZipB64: zlib.gzipSync(xmlEvento).toString('base64') }],
+    };
+    const r = await client.consultarEventos(CHAVE, '101101');
+    expect(r).toHaveLength(1);
+    expect(r[0].eventoXml).toBe(xmlEvento);
+  });
+
+  it('404 vira lista vazia — nota sem aquele evento é o caso normal', async () => {
+    resposta = { status: 404, corpo: {} };
+    expect(await client.consultarEventos(CHAVE, '101101')).toEqual([]);
+  });
+});
+
 describe('segurança do transporte', () => {
   it('mantém a verificação do certificado do servidor ligada', () => {
     const c = new SefinClient({ ambiente: 'producao', chavePem: fake.chavePem, certPem: fake.certPem });

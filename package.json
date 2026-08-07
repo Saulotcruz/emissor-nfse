@@ -19,7 +19,8 @@
     "alertas": "node scripts/verificar-alertas.js",
     "qa": "npm run lint && npm test",
     "ambiente": "node scripts/trocar-ambiente.js",
-    "sincronizar": "node scripts/sincronizar.js"
+    "sincronizar": "node scripts/sincronizar.js",
+    "api": "node scripts/api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

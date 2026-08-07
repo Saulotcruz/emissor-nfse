@@ -318,18 +318,21 @@ export async function sincronizarNota(notaId) {
 
   const emitente = await carregarEmitente();
   const { client } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
-  const eventos = await client.consultarEventos(nota.chave_acesso);
 
-  const cancelamento = eventos.find((e) => {
-    const tipo = String(e.tipoEvento ?? e.TipoEvento ?? '');
-    const xml = e.eventoXml ?? '';
-    return (
-      EVENTOS_DE_CANCELAMENTO.some((c) => tipo.includes(c)) ||
-      EVENTOS_DE_CANCELAMENTO.some((c) => xml.includes(`<e${c}>`))
-    );
-  });
+  // A consulta exige o tipo do evento: GET /nfse/{chave}/eventos responde 405,
+  // porque esse caminho é o do POST de registro. Com o tipo, funciona.
+  let cancelamento = null;
+  let consultados = 0;
+  for (const tipo of EVENTOS_DE_CANCELAMENTO) {
+    const eventos = await client.consultarEventos(nota.chave_acesso, tipo);
+    consultados += 1;
+    if (eventos.length) {
+      cancelamento = eventos[0];
+      break;
+    }
+  }
 
-  if (!cancelamento) return { mudou: false, eventos: eventos.length };
+  if (!cancelamento) return { mudou: false, eventos: 0, consultados };
 
   const [[jaRegistrado]] = await pool.query(
     'SELECT id FROM nota_evento WHERE nota_id = ? AND status = ? LIMIT 1',
