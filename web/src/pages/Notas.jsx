@@ -19,11 +19,12 @@ const doc = (d) =>
 export default function Notas() {
   const [notas, setNotas] = useState(null);
   const [erro, setErro] = useState(null);
-  const [filtros, setFiltros] = useState({ status: '', de: '', ate: '' });
+  const [filtros, setFiltros] = useState({ status: '', ambiente: '', de: '', ate: '' });
   const [ocupada, setOcupada] = useState(null); // id da nota em ação
   const [detalhe, setDetalhe] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [cancelamento, setCancelamento] = useState(null); // { nota, motivo, codigo }
+  const [sincronizando, setSincronizando] = useState(false);
 
   const carregar = useCallback(async () => {
     setErro(null);
@@ -50,6 +51,29 @@ export default function Notas() {
       valor: l.filter((n) => n.status === 'autorizada').reduce((s, n) => s + Number(n.valor_servico), 0),
     };
   }, [notas]);
+
+  /**
+   * Cancelamento feito no Portal Nacional não chega aqui sozinho. Isto pergunta
+   * à SEFIN quais notas foram canceladas por fora e acerta o banco.
+   */
+  async function sincronizar() {
+    setSincronizando(true);
+    setAviso(null);
+    try {
+      const r = await api('/notas/sincronizar', { method: 'POST' });
+      setAviso({
+        tipo: 'ok',
+        texto: r.mudadas.length
+          ? `${r.mudadas.length} nota(s) atualizada(s): ${r.mudadas.map((m) => `#${m.id}`).join(', ')}`
+          : `${r.conferidas} nota(s) conferida(s). Nenhuma divergência.`,
+      });
+      await carregar();
+    } catch (e) {
+      setAviso({ tipo: 'erro', texto: e.message });
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   async function reemitir(nota) {
     if (!confirm(`Reemitir a nota #${nota.id}?\n\nA DPS ${nota.serie}/${nota.numero_dps} é reaproveitada — não gera nota duplicada.`)) return;
@@ -109,10 +133,23 @@ export default function Notas() {
             )}
           </p>
         </div>
-        <button onClick={carregar} className="btn btn-subtle">Atualizar</button>
+        <div className="flex gap-2">
+          <button onClick={sincronizar} className="btn btn-subtle" disabled={sincronizando}>
+            {sincronizando ? 'Conferindo…' : 'Conferir na SEFIN'}
+          </button>
+          <button onClick={carregar} className="btn btn-subtle">Atualizar</button>
+        </div>
       </div>
 
-      <div className="card grid gap-3 p-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+      <div className="card grid gap-3 p-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+        <label className="label">
+          Ambiente
+          <select className="field" value={filtros.ambiente} onChange={(e) => setFiltros({ ...filtros, ambiente: e.target.value })}>
+            <option value="">Todos</option>
+            <option value="producao">Produção</option>
+            <option value="producao_restrita">Produção Restrita</option>
+          </select>
+        </label>
         <label className="label">
           Status
           <select className="field" value={filtros.status} onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}>
@@ -130,7 +167,7 @@ export default function Notas() {
           até
           <input className="field" type="date" value={filtros.ate} onChange={(e) => setFiltros({ ...filtros, ate: e.target.value })} />
         </label>
-        <button onClick={() => setFiltros({ status: '', de: '', ate: '' })} className="btn btn-subtle self-end">
+        <button onClick={() => setFiltros({ status: '', ambiente: '', de: '', ate: '' })} className="btn btn-subtle self-end">
           Limpar
         </button>
       </div>
@@ -151,16 +188,17 @@ export default function Notas() {
               <th className="px-4 py-3">Competência</th>
               <th className="px-4 py-3 text-right">Valor</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Ambiente</th>
               <th className="px-4 py-3">Origem</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {notas === null && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center muted font-semibold">Carregando…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center muted font-semibold">Carregando…</td></tr>
             )}
             {notas?.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center muted font-semibold">Nenhuma nota encontrada.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center muted font-semibold">Nenhuma nota encontrada.</td></tr>
             )}
             {notas?.map((n) => {
               const s = STATUS[n.status] ?? { rotulo: n.status, classe: '' };
@@ -186,6 +224,15 @@ export default function Notas() {
                         {n.erro_codigo ? `[${n.erro_codigo}] ` : ''}{n.erro_mensagem.slice(0, 90)}
                         {n.erro_mensagem.length > 90 ? '…' : ''}
                       </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {/* Sem isto, distinguir nota válida de nota de teste exigia
+                        abrir cada uma — e as duas convivem na mesma lista. */}
+                    {n.ambiente === 'producao' ? (
+                      <span className="status-badge border-emerald-200 bg-emerald-50 text-emerald-800">Produção</span>
+                    ) : (
+                      <span className="status-badge border-amber-300 bg-amber-100 text-amber-900">Teste</span>
                     )}
                   </td>
                   <td className="px-4 py-3">

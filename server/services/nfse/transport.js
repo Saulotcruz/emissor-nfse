@@ -126,6 +126,28 @@ export class SefinClient {
     };
   }
 
+  /**
+   * Eventos vinculados a uma NFS-e — é como se descobre um cancelamento feito
+   * fora daqui, pelo Portal Nacional. O XML da própria nota não serve: o
+   * `cStat` só distingue tipos de NFS-e gerada (100, 102, 103, 107) e nunca
+   * muda para cancelada; o cancelamento é um documento separado.
+   */
+  async consultarEventos(chaveAcesso, tipoEvento = null) {
+    const caminho = tipoEvento
+      ? `${PREFIXO}/nfse/${chaveAcesso}/eventos/${tipoEvento}`
+      : `${PREFIXO}/nfse/${chaveAcesso}/eventos`;
+    const resp = await this.requisitar('GET', caminho, null, { aceitar404: true });
+    if (resp.status === 404) return [];
+
+    const lista = Array.isArray(resp.corpo) ? resp.corpo : resp.corpo?.eventos ?? [];
+    return Promise.all(
+      lista.map(async (e) => {
+        const b64 = e.eventoXmlGZipB64 ?? e.EventoXmlGZipB64 ?? null;
+        return { ...e, eventoXml: b64 ? await descomprimir(b64) : null };
+      })
+    );
+  }
+
   async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false } = {}) {
     const url = new URL(caminho, this.baseUrl);
     const payload = corpoJson ? Buffer.from(JSON.stringify(corpoJson), 'utf8') : null;

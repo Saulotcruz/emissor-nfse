@@ -45,6 +45,16 @@ describe('GET /api/notas', () => {
     });
   });
 
+  it('devolve o ambiente da nota — sem isso a tela não distingue teste de produção', async () => {
+    const nota = (await agent.get('/api/notas')).body.notas[0];
+    expect(nota.ambiente).toBe('producao_restrita');
+  });
+
+  it('filtra por ambiente', async () => {
+    expect((await agent.get('/api/notas?ambiente=producao')).body.notas).toHaveLength(0);
+    expect((await agent.get('/api/notas?ambiente=producao_restrita')).body.notas).toHaveLength(1);
+  });
+
   it('filtra por status e por competência', async () => {
     expect((await agent.get('/api/notas?status=erro')).body.notas).toHaveLength(0);
     expect((await agent.get('/api/notas?status=autorizada')).body.notas).toHaveLength(1);
@@ -94,6 +104,30 @@ describe('POST /api/notas/:id/cancelar', () => {
     const res = await agent.post(`/api/notas/${notaId}/cancelar`).send({ motivo: 'Justificativa suficiente aqui' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/autorizada/);
+  });
+});
+
+describe('POST /api/notas/sincronizar', () => {
+  it('exige sessão', async () => {
+    expect((await request(app).post('/api/notas/sincronizar')).status).toBe(401);
+  });
+
+  // A rota tem que ser resolvida antes de /:id, senão "sincronizar" vira um id.
+  it('não é confundida com um id de nota', async () => {
+    const res = await agent.post('/api/notas/sincronizar');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('conferidas');
+    expect(res.body.error).toBeUndefined();
+  });
+
+  // Falha em uma nota não derruba a varredura das outras: o erro vai no corpo,
+  // por nota, e a rota segue respondendo 200.
+  it('reporta falha por nota sem interromper a varredura', async () => {
+    const res = await agent.post('/api/notas/sincronizar');
+    expect(res.body.conferidas).toBe(1);
+    // Sem certificado no ambiente de teste, a consulta à SEFIN falha.
+    expect(res.body.erros[0]).toMatchObject({ id: notaId });
+    expect(res.body.erros[0].erro).toMatch(/NFSE_CERT_PATH/);
   });
 });
 

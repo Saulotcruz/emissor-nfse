@@ -285,3 +285,71 @@ export async function cancelarNota(notaId, { motivo, codigoMotivo, algoritmo = '
     throw e;
   }
 }
+
+/**
+ * Códigos de evento que deixam a NFS-e cancelada.
+ * Cobrir todos importa: o cancelamento pode ter vindo por substituição, por
+ * análise fiscal ou de ofício pela prefeitura, não só pelo pedido comum.
+ */
+export const EVENTOS_DE_CANCELAMENTO = ['101101', '105102', '105104', '305101'];
+
+/**
+ * Confere na SEFIN se a nota foi cancelada fora daqui — pelo Portal Nacional,
+ * por exemplo — e atualiza o banco.
+ *
+ * Cancelamento NÃO devolve o número da DPS: ele foi consumido na emissão e a
+ * sequência segue adiante. O que a divergência causa não é falha de numeração,
+ * e sim o sistema afirmar que uma nota está válida quando não está.
+ */
+export async function sincronizarNota(notaId) {
+  const [[nota]] = await pool.query('SELECT * FROM nota WHERE id = ?', [notaId]);
+  if (!nota) throw new Error(`Nota ${notaId} não encontrada`);
+  if (nota.status !== 'autorizada' || !nota.chave_acesso) {
+    return { mudou: false, motivo: `status ${nota.status}` };
+  }
+
+  const emitente = await carregarEmitente();
+  const { client } = criarClienteSefin(emitente);
+  const eventos = await client.consultarEventos(nota.chave_acesso);
+
+  const cancelamento = eventos.find((e) => {
+    const tipo = String(e.tipoEvento ?? e.TipoEvento ?? '');
+    const xml = e.eventoXml ?? '';
+    return (
+      EVENTOS_DE_CANCELAMENTO.some((c) => tipo.includes(c)) ||
+      EVENTOS_DE_CANCELAMENTO.some((c) => xml.includes(`<e${c}>`))
+    );
+  });
+
+  if (!cancelamento) return { mudou: false, eventos: eventos.length };
+
+  const [[jaRegistrado]] = await pool.query(
+    'SELECT id FROM nota_evento WHERE nota_id = ? AND status = ? LIMIT 1',
+    [notaId, 'aceito']
+  );
+  if (!jaRegistrado) {
+    await pool.query(
+      'INSERT INTO nota_evento (nota_id, tipo, motivo, status, retorno_xml) VALUES (?, ?, ?, ?, ?)',
+      [notaId, 'cancelamento', 'Cancelada fora do sistema (Portal Nacional)', 'aceito', cancelamento.eventoXml ?? null]
+    );
+  }
+  await pool.query('UPDATE nota SET status = ? WHERE id = ?', ['cancelada', notaId]);
+  return { mudou: true, novoStatus: 'cancelada' };
+}
+
+/** Sincroniza todas as notas autorizadas. */
+export async function sincronizarNotas({ limite = 200 } = {}) {
+  const [notas] = await pool.query(
+    "SELECT id FROM nota WHERE status = 'autorizada' AND chave_acesso IS NOT NULL ORDER BY id DESC LIMIT ?",
+    [limite]
+  );
+  const resultados = [];
+  for (const n of notas) {
+    try {
+      resultados.push({ id: n.id, ...(await sincronizarNota(n.id)) });
+    } catch (e) {
+      resultados.push({ id: n.id, erro: e.message });
+    }
+  }
+  return resultados;
+}

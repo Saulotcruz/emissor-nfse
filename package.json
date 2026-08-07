@@ -18,7 +18,8 @@
     "cancelar": "node scripts/cancelar.js",
     "alertas": "node scripts/verificar-alertas.js",
     "qa": "npm run lint && npm test",
-    "ambiente": "node scripts/trocar-ambiente.js"
+    "ambiente": "node scripts/trocar-ambiente.js",
+    "sincronizar": "node scripts/sincronizar.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -170,6 +170,30 @@ outro destino com `EMISSAO_EMAIL_PARA`.
 Falha de e-mail **nunca** derruba a emissão: quando o aviso roda, a nota já está autorizada na
 SEFIN, e uma exceção aqui faria a emissão parecer malsucedida.
 
+### Conferindo cancelamentos feitos por fora
+
+Cancelar pelo Portal Nacional não avisa este sistema, e o XML da nota também não denuncia: o
+`cStat` só distingue tipos de NFS-e gerada e nunca muda para cancelada — o cancelamento é um
+evento separado.
+
+```bash
+npm run sincronizar
+```
+
+Consulta `GET /nfse/{chave}/eventos` para cada nota autorizada e marca como cancelada as que
+tiverem evento de cancelamento (comum, por substituição, por análise fiscal ou de ofício). No
+painel, o botão **Conferir na SEFIN** faz o mesmo.
+
+Isto **não** tem relação com numeração: o número da DPS é consumido na emissão e cancelar não o
+devolve, então não há falha de sequência. O que se corrige é o sistema afirmar que uma nota está
+válida quando não está mais.
+
+Vale no cron, junto do alerta:
+
+```
+30 8 * * * cd /var/www/emissor-nfse && /usr/bin/node scripts/sincronizar.js >> logs/sincronizar.log 2>&1
+```
+
 ### Alertas por e-mail
 
 Com a emissão automática rodando, uma nota que falha não avisa ninguém: o webhook responde

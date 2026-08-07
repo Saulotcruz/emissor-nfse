@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
-import { emitirNota, cancelarNota } from '../services/nfse/client.js';
+import { emitirNota, cancelarNota, sincronizarNotas } from '../services/nfse/client.js';
 import { SefinError } from '../services/nfse/errors.js';
 
 const router = Router();
@@ -12,12 +12,16 @@ router.use(requireAuth);
  * Fases 3 e 6, quando o módulo services/nfse/ existir.
  */
 router.get('/', async (req, res) => {
-  const { status, tomador_id: tomadorId, de, ate } = req.query;
+  const { status, ambiente, tomador_id: tomadorId, de, ate } = req.query;
   const where = [];
   const params = [];
   if (status) {
     where.push('n.status = ?');
     params.push(status);
+  }
+  if (ambiente) {
+    where.push('n.ambiente = ?');
+    params.push(ambiente);
   }
   if (tomadorId) {
     where.push('n.tomador_id = ?');
@@ -34,7 +38,7 @@ router.get('/', async (req, res) => {
 
   const [rows] = await pool.query(
     `SELECT n.id, n.serie, n.numero_dps, n.id_dps, n.status, n.chave_acesso, n.numero_nfse,
-            n.competencia, n.valor_servico, n.origem, n.stripe_invoice_id,
+            n.competencia, n.valor_servico, n.origem, n.ambiente, n.stripe_invoice_id,
             n.erro_codigo, n.erro_mensagem, n.autorizada_em, n.created_at,
             t.razao_social AS tomador_razao_social, t.documento AS tomador_documento
        FROM nota n
@@ -76,6 +80,24 @@ router.get('/:id/xml', async (req, res) => {
   res.type('application/xml');
   res.attachment(`nfse-${nota.serie}-${nota.numero_dps}.xml`);
   res.send(xml);
+});
+
+/**
+ * Pergunta à SEFIN se alguma nota foi cancelada fora do sistema.
+ * Precisa vir antes de `/:id/...` para o Express não tratar "sincronizar"
+ * como um id.
+ */
+router.post('/sincronizar', async (_req, res) => {
+  try {
+    const resultados = await sincronizarNotas();
+    res.json({
+      conferidas: resultados.length,
+      mudadas: resultados.filter((r) => r.mudou),
+      erros: resultados.filter((r) => r.erro),
+    });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 });
 
 /**
