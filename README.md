@@ -14,7 +14,7 @@ contribuinte **é** a autorização — não há procuração nem credenciamento
 | 2 | `dps-builder` + `signer` (XMLDSig) | ✅ concluída |
 | 3 | `transport` + emissão em Produção Restrita | ✅ concluída — **NFS-e autorizada** |
 | 4 | Webhook da Stripe + idempotência | ✅ concluída |
-| 5 | Painel React | 🟡 tela de notas pronta |
+| 5 | Painel React | 🟡 notas e configuração |
 | 6 | Cancelamento e reemissão | ✅ concluída |
 | 7 | Virada para Produção | ⬜ |
 
@@ -117,7 +117,7 @@ Prazo, valor limite e exigência de tomador identificado são **parametrizados p
 
 ### Painel
 
-Tela de notas em `web/`, no mesmo layout do CRM. Listagem com filtro por status e competência,
+Telas de **notas** e **configuração** em `web/`, no mesmo layout do CRM. Listagem com filtro por status e competência,
 detalhe da nota, download do XML, reemissão e cancelamento.
 
 ```bash

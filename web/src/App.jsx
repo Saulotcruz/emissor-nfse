@@ -4,6 +4,7 @@ import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Notas from './pages/Notas.jsx';
+import Configuracao from './pages/Configuracao.jsx';
 
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Notas />} />
+          <Route path="/configuracao" element={<Configuracao />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
