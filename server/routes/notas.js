@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireEmissao } from '../middleware/auth.js';
 import { registrar, ACOES } from '../services/auditoria.js';
 import { emitirNota, cancelarNota, sincronizarNotas, baixarDanfse } from '../services/nfse/client.js';
 import { SefinError } from '../services/nfse/errors.js';
@@ -104,7 +104,7 @@ router.get('/:id/danfse', async (req, res) => {
  * Precisa vir antes de `/:id/...` para o Express não tratar "sincronizar"
  * como um id.
  */
-router.post('/sincronizar', async (req, res) => {
+router.post('/sincronizar', requireEmissao, async (req, res) => {
   try {
     const resultados = await sincronizarNotas();
     const mudadas = resultados.filter((r) => r.mudou);
@@ -131,7 +131,7 @@ router.post('/sincronizar', async (req, res) => {
  * Reaproveita o mesmo número de DPS, e o client consulta a SEFIN pelo idDPS
  * antes de reenviar — então clicar duas vezes não gera nota duplicada.
  */
-router.post('/:id/reemitir', async (req, res) => {
+router.post('/:id/reemitir', requireEmissao, async (req, res) => {
   try {
     const r = await emitirNota(Number(req.params.id));
     await registrar(req, {
@@ -150,7 +150,7 @@ router.post('/:id/reemitir', async (req, res) => {
   }
 });
 
-router.post('/:id/cancelar', async (req, res) => {
+router.post('/:id/cancelar', requireEmissao, async (req, res) => {
   const { motivo, codigoMotivo } = req.body ?? {};
   try {
     const r = await cancelarNota(Number(req.params.id), { motivo, codigoMotivo });

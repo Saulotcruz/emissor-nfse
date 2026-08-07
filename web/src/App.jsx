@@ -6,6 +6,8 @@ import Login from './pages/Login.jsx';
 import Notas from './pages/Notas.jsx';
 import Configuracao from './pages/Configuracao.jsx';
 import Auditoria from './pages/Auditoria.jsx';
+import Usuarios from './pages/Usuarios.jsx';
+import TrocarSenha from './pages/TrocarSenha.jsx';
 
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -25,6 +27,16 @@ export default function App() {
     );
   }
 
+  // Senha provisória: o servidor recusa tudo menos /me e /me/senha, então não
+  // adianta mostrar o resto do painel.
+  if (user?.deveTrocarSenha) {
+    return (
+      <AuthContext.Provider value={{ user, setUser }}>
+        <TrocarSenha />
+      </AuthContext.Provider>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       <Routes>
@@ -33,6 +45,7 @@ export default function App() {
           <Route path="/" element={<Notas />} />
           <Route path="/configuracao" element={<Configuracao />} />
           <Route path="/auditoria" element={<Auditoria />} />
+          <Route path="/usuarios" element={<Usuarios />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

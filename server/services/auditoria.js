@@ -32,6 +32,9 @@ export const ACOES = {
   EMITENTE_ALTERADO: 'emitente_alterado',
   SERVICO_CRIADO: 'servico_criado',
   SERVICO_ALTERADO: 'servico_alterado',
+  USUARIO_CRIADO: 'usuario_criado',
+  USUARIO_ALTERADO: 'usuario_alterado',
+  USUARIO_SENHA_REDEFINIDA: 'usuario_senha_redefinida',
 };
 
 /**

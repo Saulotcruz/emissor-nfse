@@ -24,7 +24,7 @@ router.post('/login', limitarLogin, async (req, res) => {
   if (!email || !senha) return res.status(400).json({ error: 'E-mail e senha são obrigatórios' });
 
   const [[user]] = await pool.query(
-    'SELECT id, nome, email, senha_hash, papel, ativo, mfa_ativo FROM users WHERE email = ?',
+    'SELECT id, nome, email, senha_hash, papel, ativo, mfa_ativo, deve_trocar_senha FROM users WHERE email = ?',
     [String(email).trim().toLowerCase()]
   );
   // Mensagem genérica de propósito: não revela se o e-mail existe.
@@ -64,7 +64,7 @@ router.post('/login', limitarLogin, async (req, res) => {
     return res.json({ mfaRequerido: true });
   }
 
-  req.session.user = { id: user.id, nome: user.nome, email: user.email, papel: user.papel };
+  await abrirSessao(req, user);
   await registrar(req, { acao: ACOES.LOGIN, detalhe: { mfa: false } });
   res.json({ user: req.session.user });
 });
@@ -83,7 +83,7 @@ router.post('/login/mfa', limitarLogin, async (req, res) => {
   }
 
   const [[user]] = await pool.query(
-    'SELECT id, nome, email, papel, ativo, mfa_segredo, mfa_ultimo_contador FROM users WHERE id = ?',
+    'SELECT id, nome, email, papel, ativo, deve_trocar_senha, mfa_segredo, mfa_ultimo_contador FROM users WHERE id = ?',
     [pendente.id]
   );
   // Sem segredo não há segundo fator a conferir. Não deveria acontecer — só se
@@ -115,7 +115,7 @@ router.post('/login/mfa', limitarLogin, async (req, res) => {
 
   limparTentativas(req);
   await regenerarSessao(req);
-  req.session.user = { id: user.id, nome: user.nome, email: user.email, papel: user.papel };
+  await abrirSessao(req, user);
 
   await registrar(req, { acao: ACOES.LOGIN, detalhe: { mfa: true, via: viaBackup ? 'backup' : 'app' } });
   if (viaBackup) {
@@ -157,13 +157,31 @@ router.put('/me/senha', requireAuth, async (req, res) => {
     return res.status(401).json({ error: 'Senha atual incorreta' });
   }
 
-  await pool.query('UPDATE users SET senha_hash = ? WHERE id = ?', [
+  await pool.query('UPDATE users SET senha_hash = ?, deve_trocar_senha = 0 WHERE id = ?', [
     await bcrypt.hash(novaSenha, 12),
     user.id,
   ]);
+  req.session.user.deveTrocarSenha = false;
   await registrar(req, { acao: ACOES.SENHA_ALTERADA, entidade: 'usuario', entidadeId: user.id });
   res.json({ ok: true });
 });
+
+/**
+ * O que vai para a sessão. Central para os dois caminhos de login não
+ * divergirem — foi assim que `deveTrocarSenha` quase ficou de fora do caminho
+ * com MFA.
+ */
+async function abrirSessao(req, user) {
+  req.session.user = {
+    id: user.id,
+    nome: user.nome,
+    email: user.email,
+    papel: user.papel,
+    deveTrocarSenha: Boolean(user.deve_trocar_senha),
+  };
+  await pool.query('UPDATE users SET ultimo_acesso_em = NOW() WHERE id = ?', [user.id]);
+  return req.session.user;
+}
 
 function regenerarSessao(req) {
   return new Promise((resolve, reject) => req.session.regenerate((e) => (e ? reject(e) : resolve())));

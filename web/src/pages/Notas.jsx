@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 
 const STATUS = {
   autorizada: { rotulo: 'Autorizada', classe: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
@@ -17,6 +18,9 @@ const doc = (d) =>
     : String(d ?? '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 
 export default function Notas() {
+  // Quem só visualiza não vê botões que o servidor recusaria com 403.
+  const { user } = useAuth();
+  const podeEmitir = user?.papel === 'emissao' || user?.papel === 'admin';
   const [notas, setNotas] = useState(null);
   const [erro, setErro] = useState(null);
   const [filtros, setFiltros] = useState({ status: '', ambiente: '', de: '', ate: '' });
@@ -134,9 +138,11 @@ export default function Notas() {
           </p>
         </div>
         <div className="flex gap-2">
+          {podeEmitir && (
           <button onClick={sincronizar} className="btn btn-subtle" disabled={sincronizando}>
             {sincronizando ? 'Conferindo…' : 'Conferir na SEFIN'}
           </button>
+          )}
           <button onClick={carregar} className="btn btn-subtle">Atualizar</button>
         </div>
       </div>
@@ -246,16 +252,18 @@ export default function Notas() {
                           {/* O PDF é gerado sob demanda pelo ambiente nacional;
                               o XML é o documento fiscal, o PDF é representação. */}
                           <a className="btn btn-subtle" href={`/api/notas/${n.id}/danfse`} target="_blank" rel="noreferrer">PDF</a>
-                          <button
-                            className="btn btn-danger"
-                            disabled={emAcao}
-                            onClick={() => setCancelamento({ nota: n, motivo: '', codigo: '1' })}
-                          >
-                            {emAcao ? '…' : 'Cancelar'}
-                          </button>
+                          {podeEmitir && (
+                            <button
+                              className="btn btn-danger"
+                              disabled={emAcao}
+                              onClick={() => setCancelamento({ nota: n, motivo: '', codigo: '1' })}
+                            >
+                              {emAcao ? '…' : 'Cancelar'}
+                            </button>
+                          )}
                         </>
                       )}
-                      {['erro', 'pendente', 'enviando'].includes(n.status) && (
+                      {podeEmitir && ['erro', 'pendente', 'enviando'].includes(n.status) && (
                         <button className="btn btn-primary" disabled={emAcao} onClick={() => reemitir(n)}>
                           {emAcao ? 'Emitindo…' : 'Reemitir'}
                         </button>

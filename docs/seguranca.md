@@ -66,6 +66,34 @@ Detalhes que importam:
 - O segredo fica em claro no banco. Quem já tem acesso ao banco tem tudo de qualquer forma,
   mas está registrado como limite conhecido.
 
+## Papéis
+
+| Papel | Pode |
+|---|---|
+| `visualizacao` | Ver notas, baixar XML e DANFSe |
+| `emissao` | O acima + emitir, reemitir, cancelar e cadastrar tomadores |
+| `admin` | Tudo + alíquotas, dados do emitente, usuários e auditoria |
+
+São **cumulativos**: a autorização pergunta "tem pelo menos este nível?", não "é exatamente
+este papel". Uma rota nova de emissão não precisa lembrar de incluir o admin na lista —
+esquecer isso seria um buraco silencioso.
+
+Papel desconhecido (dado corrompido, papel removido) **nega**, nunca libera.
+
+Duas travas na gestão de usuários, pelo mesmo motivo — ninguém pode deixar o sistema sem dono:
+
+- não dá para rebaixar, desativar ou apagar **a si mesmo**;
+- não dá para deixar o sistema **sem nenhum admin ativo**.
+
+Usuário criado por um admin nasce com `deve_trocar_senha`. Enquanto não trocar, o servidor
+recusa tudo fora de `/me`, `/me/senha` e `/logout` — e isso é **do servidor**, não da tela:
+enquanto a senha for conhecida por duas pessoas, a trilha não pode afirmar que foi o dono da
+conta quem emitiu ou cancelou.
+
+Admin pode desligar o MFA de outro usuário (para quem perdeu o celular e gastou os códigos de
+recuperação). É a única forma de reduzir a proteção de uma conta sem saber a senha dela, e por
+isso fica na trilha marcada com `por: admin`.
+
 ## Trilha de auditoria
 
 Tabela `auditoria`, **append-only**: não existe rota que altere ou apague linha, e a de

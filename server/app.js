@@ -5,9 +5,11 @@ import MySQLStoreFactory from 'express-mysql-session';
 import { pool } from './db/pool.js';
 import { cabecalhosDeSeguranca, mesmaOrigem } from './middleware/seguranca.js';
 import { limitador } from './middleware/limite.js';
+import { exigirSenhaDefinitiva } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import mfaRoutes from './routes/mfa.js';
 import auditoriaRoutes from './routes/auditoria.js';
+import usuariosRoutes from './routes/usuarios.js';
 import tomadoresRoutes from './routes/tomadores.js';
 import notasRoutes from './routes/notas.js';
 import configRoutes from './routes/config.js';
@@ -90,8 +92,14 @@ export function createApp() {
   app.use('/api', limitador({ maximo: 600, janelaMs: 5 * 60_000, nome: 'api' }));
 
   app.use('/api', authRoutes);
+
+  // Daqui para baixo, senha provisória não passa. `authRoutes` fica de fora
+  // porque é lá que vivem /me, /me/senha e /logout — a saída dessa situação.
+  app.use('/api', exigirSenhaDefinitiva);
+
   app.use('/api/mfa', mfaRoutes);
   app.use('/api/auditoria', auditoriaRoutes);
+  app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/tomadores', tomadoresRoutes);
   // Operações que falam com a SEFIN ou geram PDF custam muito mais que uma
   // listagem — e o teto geral é largo demais para segurá-las.

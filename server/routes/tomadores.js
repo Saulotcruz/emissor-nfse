@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireEmissao } from '../middleware/auth.js';
 import { registrar, ACOES } from '../services/auditoria.js';
 import { apenasDigitos, tipoDocumento } from '../services/documento.js';
 import { consultarCnpj, CnpjNaoEncontradoError } from '../services/brasilapi.js';
@@ -51,7 +51,7 @@ router.get('/consulta/:cnpj', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireEmissao, async (req, res) => {
   const dados = montarPayload(req.body ?? {}, { origem: 'manual' });
   const erro = validar(dados);
   if (erro) return res.status(400).json({ error: erro });
@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
   res.status(201).json({ tomador });
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireEmissao, async (req, res) => {
   const [[atual]] = await pool.query('SELECT * FROM tomador WHERE id = ?', [req.params.id]);
   if (!atual) return res.status(404).json({ error: 'Tomador não encontrado' });
 
@@ -103,7 +103,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Inativa em vez de apagar: notas emitidas referenciam o tomador.
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireEmissao, async (req, res) => {
   const [r] = await pool.query('UPDATE tomador SET ativo = 0 WHERE id = ?', [req.params.id]);
   if (!r.affectedRows) return res.status(404).json({ error: 'Tomador não encontrado' });
   await registrar(req, { acao: ACOES.TOMADOR_EXCLUIDO, entidade: 'tomador', entidadeId: req.params.id });

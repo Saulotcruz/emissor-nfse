@@ -94,6 +94,11 @@ export default function Layout() {
                 Auditoria
               </NavLink>
             )}
+            {user.papel === 'admin' && (
+              <NavLink to="/usuarios" className={navClass}>
+                Usuários
+              </NavLink>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
