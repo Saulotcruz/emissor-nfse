@@ -255,6 +255,21 @@ describe('consultarEventos', () => {
   });
 });
 
+describe('cabeçalho Accept', () => {
+  // Pedir JSON de um endpoint que só produz PDF faz a SEFIN responder 501, o
+  // que parece endpoint inexistente e não é — foi o que aconteceu na primeira
+  // tentativa de baixar o DANFSe.
+  it('pede JSON nas rotas normais e PDF nas binárias', async () => {
+    resposta = { status: 200, corpo: {} };
+    await client.consultarNfse(CHAVE);
+    expect(fake.requisicoes.at(-1).headers.accept).toBe('application/json');
+
+    resposta = { status: 200, corpo: '%PDF-1.4', tipo: 'application/pdf' };
+    await client.baixarDanfse(CHAVE);
+    expect(fake.requisicoes.at(-1).headers.accept).toContain('application/pdf');
+  });
+});
+
 describe('baixarDanfse', () => {
   it('devolve o PDF e informa qual caminho respondeu', async () => {
     const pdfFalso = '%PDF-1.4\n conteudo';

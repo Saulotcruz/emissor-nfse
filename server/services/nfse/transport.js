@@ -193,9 +193,12 @@ export class SefinClient {
    */
   async baixarDanfse(chaveAcesso) {
     const tentativas = [
+      // Caminho da documentação, na SEFIN.
+      { base: this.baseUrl, caminho: `${PREFIXO}/danfse/${chaveAcesso}` },
+      // Mesma rota em minúsculas, caso o roteamento diferencie caixa.
+      { base: this.baseUrl, caminho: `/sefinnacional/danfse/${chaveAcesso}` },
       { base: this.baseUrlAdn, caminho: `${PREFIXO_ADN}/danfse/${chaveAcesso}` },
       { base: this.baseUrlAdn, caminho: `/danfse/${chaveAcesso}` },
-      { base: this.baseUrl, caminho: `${PREFIXO}/danfse/${chaveAcesso}` },
     ];
 
     const erros = [];
@@ -227,7 +230,7 @@ export class SefinClient {
     );
   }
 
-  async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false, base, binario = false } = {}) {
+  async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false, base, binario = false, accept } = {}) {
     const url = new URL(caminho, base ?? this.baseUrl);
     const payload = corpoJson ? Buffer.from(JSON.stringify(corpoJson), 'utf8') : null;
 
@@ -241,7 +244,10 @@ export class SefinClient {
           agent: this.agent,
           timeout: this.timeout,
           headers: {
-            Accept: 'application/json',
+            // Pedir JSON de um endpoint que só produz PDF faz o servidor recusar
+            // — a SEFIN responde 501 nesse caso, o que parece endpoint
+            // inexistente e não é.
+            Accept: accept ?? (binario ? 'application/pdf, */*' : 'application/json'),
             ...(payload
               ? { 'Content-Type': 'application/json', 'Content-Length': payload.length }
               : {}),

@@ -6,6 +6,7 @@
  *   npm run api -- --ambiente producao /SefinNacional/nfse/{chave}
  *   npm run api -- --metodo HEAD /SefinNacional/dps/{idDps}
  *   npm run api -- --host adn /contribuintes/DFe/0
+ *   npm run api -- --accept 'application/pdf, */*' /SefinNacional/danfse/CHAVE
  *
  * Existe porque a documentação da SEFIN diverge da API em pontos que só
  * aparecem no uso — o GET de eventos sem o tipo, por exemplo, responde 405.
@@ -40,9 +41,19 @@ try {
     if (opts.host === 'adn') client.baseUrl = baseUrlDoAmbiente(ambiente, 'adn');
 
     console.log(`${opts.metodo ?? 'GET'} ${client.baseUrl}${caminho}  (${ambiente})\n`);
-    const r = await client.requisitar(opts.metodo ?? 'GET', caminho, null, { aceitar404: true });
-    console.log(`HTTP ${r.status}`);
-    console.log(typeof r.corpo === 'string' ? r.corpo.slice(0, 4000) : JSON.stringify(r.corpo, null, 2)?.slice(0, 4000));
+    const r = await client.requisitar(opts.metodo ?? 'GET', caminho, null, {
+      aceitar404: true,
+      accept: opts.accept,
+    });
+    console.log(`HTTP ${r.status}  ${r.tipo ?? ''}`);
+
+    // Resposta binária não vira texto legível; mostra a assinatura e o tamanho.
+    const assinatura = r.bytes?.subarray(0, 4).toString('latin1');
+    if (assinatura === '%PDF') {
+      console.log(`PDF de ${(r.bytes.length / 1024).toFixed(1)} kB`);
+    } else {
+      console.log(typeof r.corpo === 'string' ? r.corpo.slice(0, 3000) : JSON.stringify(r.corpo, null, 2)?.slice(0, 3000));
+    }
   }
 } catch (e) {
   console.error(`✗ ${e.message}`);
