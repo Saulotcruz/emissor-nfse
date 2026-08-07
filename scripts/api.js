@@ -6,7 +6,7 @@
  *   npm run api -- --ambiente producao /SefinNacional/nfse/{chave}
  *   npm run api -- --metodo HEAD /SefinNacional/dps/{idDps}
  *   npm run api -- --host adn /contribuintes/DFe/0
- *   npm run api -- --accept 'application/pdf, */*' /SefinNacional/danfse/CHAVE
+ *   npm run api -- --accept application/pdf /SefinNacional/danfse/CHAVE
  *
  * Existe porque a documentação da SEFIN diverge da API em pontos que só
  * aparecem no uso — o GET de eventos sem o tipo, por exemplo, responde 405.
