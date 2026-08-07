@@ -211,28 +211,36 @@ describe('eventos', () => {
 });
 
 describe('consultarEventos', () => {
-  // Sem o tipo, o caminho é o do POST de registro e a SEFIN responde 405.
-  it('inclui o tipo do evento no caminho', async () => {
-    resposta = { status: 200, corpo: [] };
-    await client.consultarEventos(CHAVE, '101101');
-    expect(fake.requisicoes.at(-1).caminho).toBe(`/SefinNacional/nfse/${CHAVE}/eventos/101101`);
+  // Na SEFIN esse caminho só aceita POST (405) e a variante com tipo nem existe.
+  // A consulta vive no ADN, com prefixo /contribuintes.
+  it('usa o caminho do ADN', async () => {
+    resposta = { status: 200, corpo: { LoteDFe: [] } };
+    await client.consultarEventos(CHAVE);
+    expect(fake.requisicoes.at(-1).caminho).toBe(`/contribuintes/nfse/${CHAVE}/eventos`);
     expect(fake.requisicoes.at(-1).metodo).toBe('GET');
   });
 
-  it('descomprime o XML de cada evento encontrado', async () => {
-    const xmlEvento = '<evento versao="1.01"><infEvento/></evento>';
+  it('desempacota o LoteDFe, descomprimindo o XML de cada documento', async () => {
+    const xmlEvento = '<evento versao="1.01"><infEvento><e101101/></infEvento></evento>';
     resposta = {
       status: 200,
-      corpo: [{ eventoXmlGZipB64: zlib.gzipSync(xmlEvento).toString('base64') }],
+      corpo: {
+        StatusProcessamento: 'DOCUMENTOS_LOCALIZADOS',
+        LoteDFe: [
+          { NSU: 329, TipoDocumento: 'NFSE', ChaveAcesso: CHAVE, ArquivoXml: zlib.gzipSync('<NFSe/>').toString('base64') },
+          { NSU: 330, TipoDocumento: 'EVENTO', ChaveAcesso: CHAVE, ArquivoXml: zlib.gzipSync(xmlEvento).toString('base64') },
+        ],
+      },
     };
-    const r = await client.consultarEventos(CHAVE, '101101');
-    expect(r).toHaveLength(1);
-    expect(r[0].eventoXml).toBe(xmlEvento);
+    const r = await client.consultarEventos(CHAVE);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ nsu: 329, tipoDocumento: 'NFSE' });
+    expect(r[1].eventoXml).toBe(xmlEvento);
   });
 
-  it('404 em JSON vira lista vazia — nota sem aquele evento é o caso normal', async () => {
-    resposta = { status: 404, corpo: {} };
-    expect(await client.consultarEventos(CHAVE, '101101')).toEqual([]);
+  it('lote vazio vira lista vazia', async () => {
+    resposta = { status: 200, corpo: { StatusProcessamento: 'NENHUM_DOCUMENTO_LOCALIZADO', LoteDFe: [] } };
+    expect(await client.consultarEventos(CHAVE)).toEqual([]);
   });
 
   // Tratar os dois 404 igual faria a verificação passar em silêncio com o
@@ -243,7 +251,7 @@ describe('consultarEventos', () => {
       corpo: '<html><body>404 - File or directory not found.</body></html>',
       tipo: 'text/html',
     };
-    await expect(client.consultarEventos(CHAVE, '101101')).rejects.toThrow(/não existe neste host/);
+    await expect(client.consultarEventos(CHAVE)).rejects.toThrow(/não existe neste host/);
   });
 });
 

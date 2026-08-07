@@ -319,20 +319,15 @@ export async function sincronizarNota(notaId) {
   const emitente = await carregarEmitente();
   const { client } = criarClienteSefin(emitente, { ambiente: nota.ambiente });
 
-  // A consulta exige o tipo do evento: GET /nfse/{chave}/eventos responde 405,
-  // porque esse caminho é o do POST de registro. Com o tipo, funciona.
-  let cancelamento = null;
-  let consultados = 0;
-  for (const tipo of EVENTOS_DE_CANCELAMENTO) {
-    const eventos = await client.consultarEventos(nota.chave_acesso, tipo);
-    consultados += 1;
-    if (eventos.length) {
-      cancelamento = eventos[0];
-      break;
-    }
-  }
+  // Uma requisição ao ADN traz todos os documentos da nota: a própria NFS-e e
+  // os eventos. O cancelamento é reconhecido pela tag do evento no XML, que é
+  // mais confiável que o rótulo de TipoDocumento.
+  const documentos = await client.consultarEventos(nota.chave_acesso);
+  const cancelamento = documentos.find((d) =>
+    EVENTOS_DE_CANCELAMENTO.some((c) => (d.eventoXml ?? '').includes(`<e${c}>`))
+  );
 
-  if (!cancelamento) return { mudou: false, eventos: 0, consultados };
+  if (!cancelamento) return { mudou: false, documentos: documentos.length };
 
   const [[jaRegistrado]] = await pool.query(
     'SELECT id FROM nota_evento WHERE nota_id = ? AND status = ? LIMIT 1',

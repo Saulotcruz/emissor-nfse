@@ -26,6 +26,9 @@ export const BASE_URLS_ADN = {
 };
 
 const PREFIXO = '/SefinNacional';
+// O ADN usa outro prefixo e outro host — emissão e consulta de eventos vivem
+// em serviços diferentes do Sistema Nacional.
+const PREFIXO_ADN = '/contribuintes';
 const TIMEOUT_PADRAO = 60000;
 
 export function baseUrlDoAmbiente(ambiente, host = 'sefin') {
@@ -60,6 +63,9 @@ export class SefinClient {
       throw new Error('Chave e certificado em PEM são obrigatórios para falar com a SEFIN');
     }
     this.baseUrl = baseUrl ?? baseUrlDoAmbiente(ambiente);
+    // Consultas de evento não estão na SEFIN: lá o caminho /eventos só aceita
+    // POST (405) e a variante com tipo nem existe (404 em HTML do IIS).
+    this.baseUrlAdn = baseUrl ?? baseUrlDoAmbiente(ambiente, 'adn');
     this.timeout = timeout;
     this.agent = new https.Agent({
       key: chavePem,
@@ -134,22 +140,24 @@ export class SefinClient {
   }
 
   /**
-   * Eventos vinculados a uma NFS-e — é como se descobre um cancelamento feito
-   * fora daqui, pelo Portal Nacional. O XML da própria nota não serve: o
-   * `cStat` só distingue tipos de NFS-e gerada (100, 102, 103, 107) e nunca
-   * muda para cancelada; o cancelamento é um documento separado.
+   * Documentos vinculados a uma NFS-e — é como se descobre um cancelamento
+   * feito fora daqui, pelo Portal Nacional.
+   *
+   * Fica no ADN, não na SEFIN: lá o caminho `/eventos` só aceita POST (405), e
+   * a variante com o tipo do evento nem existe (404 em HTML do IIS). A resposta
+   * vem como lote de DF-e, com cada documento em GZip+Base64.
+   *
+   * O XML da própria nota não denuncia cancelamento: o `cStat` só distingue
+   * tipos de NFS-e gerada (100, 102, 103, 107) e nunca muda.
    */
-  async consultarEventos(chaveAcesso, tipoEvento = null) {
-    const caminho = tipoEvento
-      ? `${PREFIXO}/nfse/${chaveAcesso}/eventos/${tipoEvento}`
-      : `${PREFIXO}/nfse/${chaveAcesso}/eventos`;
-    const resp = await this.requisitar('GET', caminho, null, { aceitar404: true });
+  async consultarEventos(chaveAcesso) {
+    const caminho = `${PREFIXO_ADN}/nfse/${chaveAcesso}/eventos`;
+    const resp = await this.requisitar('GET', caminho, null, {
+      aceitar404: true,
+      base: this.baseUrlAdn,
+    });
 
     if (resp.status === 404) {
-      // Um 404 em HTML é o IIS dizendo que a ROTA não existe — muito diferente
-      // de "esta nota não tem esse evento". Tratar os dois igual faria a
-      // verificação passar em silêncio com o endpoint quebrado, que é pior que
-      // não ter verificação nenhuma.
       if (typeof resp.corpo === 'string' && /<html/i.test(resp.corpo)) {
         throw new RejeicaoSefinError(
           `Endpoint de consulta de eventos não existe neste host: GET ${caminho}`,
@@ -159,17 +167,22 @@ export class SefinClient {
       return [];
     }
 
-    const lista = Array.isArray(resp.corpo) ? resp.corpo : resp.corpo?.eventos ?? [];
+    const lote = resp.corpo?.LoteDFe ?? resp.corpo?.loteDFe ?? [];
     return Promise.all(
-      lista.map(async (e) => {
-        const b64 = e.eventoXmlGZipB64 ?? e.EventoXmlGZipB64 ?? null;
-        return { ...e, eventoXml: b64 ? await descomprimir(b64) : null };
+      lote.map(async (d) => {
+        const b64 = d.ArquivoXml ?? d.arquivoXml ?? null;
+        return {
+          nsu: d.NSU ?? d.nsu ?? null,
+          tipoDocumento: d.TipoDocumento ?? d.tipoDocumento ?? null,
+          chaveAcesso: d.ChaveAcesso ?? d.chaveAcesso ?? null,
+          eventoXml: b64 ? await descomprimir(b64) : null,
+        };
       })
     );
   }
 
-  async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false } = {}) {
-    const url = new URL(caminho, this.baseUrl);
+  async requisitar(metodo, caminho, corpoJson = null, { aceitar404 = false, base } = {}) {
+    const url = new URL(caminho, base ?? this.baseUrl);
     const payload = corpoJson ? Buffer.from(JSON.stringify(corpoJson), 'utf8') : null;
 
     const resposta = await new Promise((resolve, reject) => {
