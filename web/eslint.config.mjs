@@ -24,6 +24,7 @@ export default [
         clearTimeout: 'readonly',
         alert: 'readonly',
         confirm: 'readonly',
+        navigator: 'readonly', // clipboard, ao copiar os códigos de recuperação
       },
     },
     rules: {

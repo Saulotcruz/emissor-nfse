@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { registrar, ACOES } from '../services/auditoria.js';
 import { emitirNota, cancelarNota, sincronizarNotas, baixarDanfse } from '../services/nfse/client.js';
 import { SefinError } from '../services/nfse/errors.js';
 
@@ -103,9 +104,18 @@ router.get('/:id/danfse', async (req, res) => {
  * Precisa vir antes de `/:id/...` para o Express não tratar "sincronizar"
  * como um id.
  */
-router.post('/sincronizar', async (_req, res) => {
+router.post('/sincronizar', async (req, res) => {
   try {
     const resultados = await sincronizarNotas();
+    const mudadas = resultados.filter((r) => r.mudou);
+    // Só registra quando algo mudou: uma sincronização de rotina que não achou
+    // divergência não é evento, e encheria a trilha a cada 30 minutos.
+    if (mudadas.length) {
+      await registrar(req, {
+        acao: ACOES.NOTAS_SINCRONIZADAS,
+        detalhe: { conferidas: resultados.length, mudadas: mudadas.map((m) => m.notaId ?? m.id) },
+      });
+    }
     res.json({
       conferidas: resultados.length,
       mudadas: resultados.filter((r) => r.mudou),
@@ -124,6 +134,12 @@ router.post('/sincronizar', async (_req, res) => {
 router.post('/:id/reemitir', async (req, res) => {
   try {
     const r = await emitirNota(Number(req.params.id));
+    await registrar(req, {
+      acao: ACOES.NOTA_REEMITIDA,
+      entidade: 'nota',
+      entidadeId: req.params.id,
+      detalhe: { chaveAcesso: r.chaveAcesso ?? null, jaAutorizada: Boolean(r.jaAutorizada) },
+    });
     res.json({ ok: true, jaAutorizada: r.jaAutorizada, chaveAcesso: r.chaveAcesso, nota: r.nota });
   } catch (e) {
     res.status(e instanceof SefinError ? 422 : 400).json({
@@ -138,6 +154,12 @@ router.post('/:id/cancelar', async (req, res) => {
   const { motivo, codigoMotivo } = req.body ?? {};
   try {
     const r = await cancelarNota(Number(req.params.id), { motivo, codigoMotivo });
+    await registrar(req, {
+      acao: ACOES.NOTA_CANCELADA,
+      entidade: 'nota',
+      entidadeId: req.params.id,
+      detalhe: { motivo, codigoMotivo, jaCancelada: Boolean(r.jaCancelada) },
+    });
     res.json({ ok: true, jaCancelada: r.jaCancelada, idPedido: r.idPedido ?? null });
   } catch (e) {
     res.status(e instanceof SefinError ? 422 : 400).json({

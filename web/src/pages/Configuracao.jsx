@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import Mfa from '../components/Mfa.jsx';
 
 const REGIMES = [
   ['lucro_presumido', 'Lucro Presumido'],
@@ -83,6 +84,9 @@ export default function Configuracao() {
 
   return (
     <div className="grid gap-4">
+      {/* Segurança da conta vem antes dos dados fiscais: é o que protege todo
+          o resto. */}
+      <Mfa />
       <div>
         <h1 className="text-xl font-black">Configuração</h1>
         <p className="muted text-sm font-semibold">

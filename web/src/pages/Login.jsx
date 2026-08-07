@@ -9,6 +9,9 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', senha: '' });
   const [erro, setErro] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  // Quando o MFA está ligado, a senha certa não abre a sessão: leva ao código.
+  const [pedindoCodigo, setPedindoCodigo] = useState(false);
+  const [codigo, setCodigo] = useState('');
 
   if (user) return <Navigate to="/" />;
 
@@ -18,6 +21,10 @@ export default function Login() {
     setEnviando(true);
     try {
       const d = await api('/login', { method: 'POST', body: form });
+      if (d.mfaRequerido) {
+        setPedindoCodigo(true);
+        return;
+      }
       setUser(d.user);
       navigate('/');
     } catch (err) {
@@ -25,6 +32,70 @@ export default function Login() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  async function confirmarCodigo(e) {
+    e.preventDefault();
+    setErro(null);
+    setEnviando(true);
+    try {
+      const d = await api('/login/mfa', { method: 'POST', body: { codigo } });
+      setUser(d.user);
+      if (d.usouCodigoBackup) {
+        alert('Você entrou com um código de recuperação. Ele não vale mais — gere novos na Configuração.');
+      }
+      navigate('/');
+    } catch (err) {
+      setErro(err.message);
+      setCodigo('');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (pedindoCodigo) {
+    return (
+      <div className="app-shell grid min-h-screen place-items-center px-4">
+        <form onSubmit={confirmarCodigo} className="card w-full max-w-sm p-6">
+          <h1 className="text-lg font-black leading-tight">Verificação em duas etapas</h1>
+          <p className="muted mt-1 text-xs font-semibold">
+            Digite o código de 6 dígitos do seu aplicativo autenticador.
+          </p>
+
+          <div className="mt-5 grid gap-3">
+            <input
+              className="field text-center text-2xl font-black tracking-[0.4em]"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              maxLength={9}
+              placeholder="000000"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              required
+            />
+            <p className="muted text-xs">
+              Perdeu o celular? Use um dos códigos de recuperação no mesmo campo.
+            </p>
+
+            {erro && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{erro}</p>
+            )}
+
+            <button className="btn btn-primary" disabled={enviando}>
+              {enviando ? 'Verificando…' : 'Verificar'}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => { setPedindoCodigo(false); setCodigo(''); setErro(null); }}
+            >
+              Voltar
+            </button>
+          </div>
+        </form>
+      </div>
+    );
   }
 
   return (

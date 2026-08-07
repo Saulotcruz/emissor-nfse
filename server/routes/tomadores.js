@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { registrar, ACOES } from '../services/auditoria.js';
 import { apenasDigitos, tipoDocumento } from '../services/documento.js';
 import { consultarCnpj, CnpjNaoEncontradoError } from '../services/brasilapi.js';
 
@@ -66,6 +67,12 @@ router.post('/', async (req, res) => {
     cols.map((c) => dados[c])
   );
   const [[tomador]] = await pool.query('SELECT * FROM tomador WHERE id = ?', [r.insertId]);
+  await registrar(req, {
+    acao: ACOES.TOMADOR_CRIADO,
+    entidade: 'tomador',
+    entidadeId: tomador.id,
+    detalhe: { documento: tomador.documento, razao_social: tomador.razao_social },
+  });
   res.status(201).json({ tomador });
 });
 
@@ -83,6 +90,15 @@ router.put('/:id', async (req, res) => {
     [...cols.map((c) => dados[c]), req.params.id]
   );
   const [[tomador]] = await pool.query('SELECT * FROM tomador WHERE id = ?', [req.params.id]);
+  // Guarda o que mudou, não a linha inteira: a trilha serve para responder "o
+  // que foi alterado", e um retrato completo a cada edição só dificulta a leitura.
+  const mudou = cols.filter((c) => String(atual[c] ?? '') !== String(tomador[c] ?? ''));
+  await registrar(req, {
+    acao: ACOES.TOMADOR_ALTERADO,
+    entidade: 'tomador',
+    entidadeId: tomador.id,
+    detalhe: { campos: mudou, de: Object.fromEntries(mudou.map((c) => [c, atual[c]])) },
+  });
   res.json({ tomador });
 });
 
@@ -90,6 +106,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const [r] = await pool.query('UPDATE tomador SET ativo = 0 WHERE id = ?', [req.params.id]);
   if (!r.affectedRows) return res.status(404).json({ error: 'Tomador não encontrado' });
+  await registrar(req, { acao: ACOES.TOMADOR_EXCLUIDO, entidade: 'tomador', entidadeId: req.params.id });
   res.json({ ok: true });
 });
 

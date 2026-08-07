@@ -6,7 +6,18 @@ import { seed } from '../../db/seed.js';
 import { EMITENTE_FIXTURE, SERVICO_FIXTURE } from '../fixtures/emitente.js';
 
 // Ordem importa: filhos antes dos pais, mesmo com FOREIGN_KEY_CHECKS=0 desligado.
-const TABLES = ['nota_evento', 'nota', 'stripe_evento', 'tomador', 'servico', 'certificado', 'emitente', 'users'];
+const TABLES = [
+  'auditoria',
+  'mfa_codigo_backup',
+  'nota_evento',
+  'nota',
+  'stripe_evento',
+  'tomador',
+  'servico',
+  'certificado',
+  'emitente',
+  'users',
+];
 
 export async function resetDb({ comSeed = true } = {}) {
   await migrate();

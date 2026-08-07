@@ -88,6 +88,12 @@ export default function Layout() {
             <NavLink to="/configuracao" className={navClass}>
               Configuração
             </NavLink>
+            {/* A trilha mostra de onde cada pessoa entrou; não é para todo operador. */}
+            {user.papel === 'admin' && (
+              <NavLink to="/auditoria" className={navClass}>
+                Auditoria
+              </NavLink>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-3">

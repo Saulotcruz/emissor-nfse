@@ -57,4 +57,63 @@ export function limitarLogin(req, res, next) {
 /** Exposto para os testes; produção não precisa zerar nada. */
 export function _zerar() {
   tentativas.clear();
+  baldes.clear();
+}
+
+/* ------------------------------------------------------- limite geral de uso */
+
+/**
+ * Limite de requisições para o resto da API.
+ *
+ * O bloqueio de login acima protege a senha; este protege o serviço. São coisas
+ * diferentes: aquele conta **falhas** e trava a conta, este conta **chamadas** e
+ * segura o ritmo, mesmo de quem está autenticado.
+ *
+ * Também é em memória, pelo mesmo motivo e com a mesma ressalva: uma instância
+ * só. Ver `ecosystem.config.cjs`.
+ */
+const baldes = new Map();
+
+function contar(chaveBalde, janelaMs, agora) {
+  const balde = baldes.get(chaveBalde);
+  if (!balde || agora - balde.inicio > janelaMs) {
+    const novo = { contagem: 1, inicio: agora };
+    baldes.set(chaveBalde, novo);
+    return novo;
+  }
+  balde.contagem += 1;
+  return balde;
+}
+
+/** Remove baldes vencidos; roda de vez em quando para o Map não crescer sem fim. */
+function limparBaldes(agora) {
+  if (baldes.size < 5000) return;
+  for (const [k, v] of baldes) {
+    if (agora - v.inicio > 60 * 60_000) baldes.delete(k);
+  }
+}
+
+/**
+ * @param {object} opcoes
+ * @param {number} opcoes.maximo     chamadas permitidas na janela
+ * @param {number} opcoes.janelaMs
+ * @param {string} opcoes.nome       identifica o balde; rotas diferentes não se misturam
+ */
+export function limitador({ maximo, janelaMs, nome }) {
+  return function limitar(req, res, next) {
+    const agora = Date.now();
+    limparBaldes(agora);
+
+    // Por usuário quando há sessão, por IP quando não há: senão todo mundo
+    // atrás do mesmo NAT dividiria a mesma cota.
+    const quem = req.session?.user?.id ? `u${req.session.user.id}` : `ip${req.ip}`;
+    const balde = contar(`${nome}|${quem}`, janelaMs, agora);
+
+    if (balde.contagem > maximo) {
+      const restanteS = Math.ceil((balde.inicio + janelaMs - agora) / 1000);
+      res.set('Retry-After', String(restanteS));
+      return res.status(429).json({ error: 'Muitas requisições. Tente novamente em instantes.' });
+    }
+    return next();
+  };
 }

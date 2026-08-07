@@ -2,6 +2,7 @@ import { pool } from '../../db/pool.js';
 import { mapearFatura, FaturaNaoEmiteNota } from './mapper.js';
 import { consultarCnpj, CnpjNaoEncontradoError } from '../brasilapi.js';
 import { carregarServicoPadrao, reservarNota, emitirNota } from '../nfse/client.js';
+import { registrar, ACOES } from '../auditoria.js';
 
 /**
  * Processa uma fatura paga: resolve o tomador, reserva a nota e emite.
@@ -160,6 +161,15 @@ export async function processarFatura(invoice, { emitir = true } = {}) {
   if (!emitir) return { status: 'reservada', notaId: reserva.id };
 
   const r = await emitirNota(reserva.id);
+  // Emissão automática não tem sessão nem IP: o autor é a Stripe. Fica na
+  // trilha do mesmo jeito — a pergunta "de onde veio esta nota?" precisa ter
+  // resposta tanto para o que foi clicado quanto para o que foi automático.
+  await registrar(null, {
+    acao: ACOES.NOTA_EMITIDA,
+    entidade: 'nota',
+    entidadeId: reserva.id,
+    detalhe: { origem: 'stripe', invoice: invoice?.id ?? null, chaveAcesso: r.chaveAcesso ?? null },
+  });
   return { status: 'emitida', notaId: reserva.id, chaveAcesso: r.chaveAcesso };
 }
 

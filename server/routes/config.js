@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { registrar, ACOES } from '../services/auditoria.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -38,6 +39,12 @@ router.put('/emitente', requireAdmin, async (req, res) => {
     [...cols.map((c) => body[c]), emitente.id]
   );
   const [[atualizado]] = await pool.query('SELECT * FROM emitente WHERE id = ?', [emitente.id]);
+  await registrar(req, {
+    acao: ACOES.EMITENTE_ALTERADO,
+    entidade: 'emitente',
+    entidadeId: emitente.id,
+    detalhe: { campos: cols },
+  });
   res.json({ emitente: atualizado });
 });
 
@@ -59,6 +66,12 @@ router.post('/servicos', requireAdmin, async (req, res) => {
     cols.map((c) => body[c])
   );
   const [[servico]] = await pool.query('SELECT * FROM servico WHERE id = ?', [r.insertId]);
+  await registrar(req, {
+    acao: ACOES.SERVICO_CRIADO,
+    entidade: 'servico',
+    entidadeId: servico.id,
+    detalhe: { codigo: servico.codigo_tributacao_nacional, descricao: servico.descricao },
+  });
   res.status(201).json({ servico });
 });
 
@@ -73,6 +86,14 @@ router.put('/servicos/:id', requireAdmin, async (req, res) => {
   );
   if (!r.affectedRows) return res.status(404).json({ error: 'Serviço não encontrado' });
   const [[servico]] = await pool.query('SELECT * FROM servico WHERE id = ?', [req.params.id]);
+  // Alíquota alterada muda o imposto de toda nota futura: é o registro mais
+  // importante desta trilha depois dos de nota.
+  await registrar(req, {
+    acao: ACOES.SERVICO_ALTERADO,
+    entidade: 'servico',
+    entidadeId: req.params.id,
+    detalhe: { campos: cols, valores: Object.fromEntries(cols.map((c) => [c, body[c]])) },
+  });
   res.json({ servico });
 });
 

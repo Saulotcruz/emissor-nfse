@@ -4,7 +4,10 @@ import session from 'express-session';
 import MySQLStoreFactory from 'express-mysql-session';
 import { pool } from './db/pool.js';
 import { cabecalhosDeSeguranca, mesmaOrigem } from './middleware/seguranca.js';
+import { limitador } from './middleware/limite.js';
 import authRoutes from './routes/auth.js';
+import mfaRoutes from './routes/mfa.js';
+import auditoriaRoutes from './routes/auditoria.js';
 import tomadoresRoutes from './routes/tomadores.js';
 import notasRoutes from './routes/notas.js';
 import configRoutes from './routes/config.js';
@@ -29,6 +32,20 @@ function segredoDeSessao() {
   }
   return segredo || 'dev-secret';
 }
+
+/**
+ * Segura as rotas de nota que custam caro: emissão, cancelamento, sincronização
+ * e geração de DANFSe. Leitura da lista passa livre pelo teto geral.
+ *
+ * Não é só custo de CPU — reemitir em laço vira sequência de números de DPS
+ * queimados na SEFIN, que não se recupera.
+ */
+const limiteOperacoesCaras = (() => {
+  const limitar = limitador({ maximo: 30, janelaMs: 5 * 60_000, nome: 'notas-caras' });
+  const CARAS = /^\/(sincronizar|\d+\/(reemitir|cancelar|danfse))$/;
+  return (req, res, next) =>
+    CARAS.test(req.path) ? limitar(req, res, next) : next();
+})();
 
 export function createApp() {
   const app = express();
@@ -67,12 +84,21 @@ export function createApp() {
   // Vale para todo /api, inclusive o webhook — que passa porque a Stripe não
   // manda Origin, e quem a autentica é a assinatura HMAC.
   app.use('/api', mesmaOrigem);
+
+  // Teto geral: generoso para o uso normal do painel, mas impede que uma
+  // sessão válida (ou um IP qualquer) rode a API em laço.
+  app.use('/api', limitador({ maximo: 600, janelaMs: 5 * 60_000, nome: 'api' }));
+
   app.use('/api', authRoutes);
+  app.use('/api/mfa', mfaRoutes);
+  app.use('/api/auditoria', auditoriaRoutes);
   app.use('/api/tomadores', tomadoresRoutes);
-  app.use('/api/notas', notasRoutes);
+  // Operações que falam com a SEFIN ou geram PDF custam muito mais que uma
+  // listagem — e o teto geral é largo demais para segurá-las.
+  app.use('/api/notas', limiteOperacoesCaras, notasRoutes);
   app.use('/api/config', configRoutes);
   // Sem sessão: quem autentica aqui é a assinatura da Stripe.
-  app.use('/api/stripe', stripeRoutes);
+  app.use('/api/stripe', limitador({ maximo: 300, janelaMs: 60_000, nome: 'stripe' }), stripeRoutes);
 
   // A assinatura de 4 argumentos é o que faz o Express reconhecer isto como error handler.
   app.use((err, _req, res, _next) => {

@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Notas from './pages/Notas.jsx';
 import Configuracao from './pages/Configuracao.jsx';
+import Auditoria from './pages/Auditoria.jsx';
 
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -31,6 +32,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Notas />} />
           <Route path="/configuracao" element={<Configuracao />} />
+          <Route path="/auditoria" element={<Auditoria />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

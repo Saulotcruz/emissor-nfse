@@ -3,10 +3,15 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
 import { limitarLogin, registrarFalha, limparTentativas } from '../middleware/limite.js';
+import { registrar, ACOES } from '../services/auditoria.js';
+import { verificarTotp, normalizarCodigoBackup } from '../services/mfa/totp.js';
 
 const router = Router();
 
 export const SENHA_MINIMA = 10;
+
+/** Prazo para digitar o código depois de a senha ter sido aceita. */
+const PRAZO_MFA_MS = 5 * 60_000;
 
 /**
  * Hash de uma senha que ninguém tem, com o mesmo custo dos hashes reais.
@@ -19,7 +24,7 @@ router.post('/login', limitarLogin, async (req, res) => {
   if (!email || !senha) return res.status(400).json({ error: 'E-mail e senha são obrigatórios' });
 
   const [[user]] = await pool.query(
-    'SELECT id, nome, email, senha_hash, papel, ativo FROM users WHERE email = ?',
+    'SELECT id, nome, email, senha_hash, papel, ativo, mfa_ativo FROM users WHERE email = ?',
     [String(email).trim().toLowerCase()]
   );
   // Mensagem genérica de propósito: não revela se o e-mail existe.
@@ -31,26 +36,96 @@ router.post('/login', limitarLogin, async (req, res) => {
   if (!user || !user.ativo) {
     await bcrypt.compare(senha, HASH_DESCARTAVEL);
     registrarFalha(req);
+    await registrar(req, { acao: ACOES.LOGIN_FALHA, detalhe: { email: String(email).trim().toLowerCase() } });
     return res.status(401).json({ error: 'Credenciais inválidas' });
   }
 
   const ok = await bcrypt.compare(senha, user.senha_hash);
   if (!ok) {
     registrarFalha(req);
+    await registrar(req, {
+      acao: ACOES.LOGIN_FALHA,
+      usuario: { id: user.id, email: user.email },
+      detalhe: { motivo: 'senha' },
+    });
     return res.status(401).json({ error: 'Credenciais inválidas' });
   }
 
   limparTentativas(req);
   // Sessão nova a cada login: sem isto, um id de sessão obtido antes do login
   // continuaria válido depois dele (fixação de sessão).
-  await new Promise((resolve, reject) =>
-    req.session.regenerate((e) => (e ? reject(e) : resolve()))
-  );
+  await regenerarSessao(req);
+
+  // Com MFA ligado a senha certa não abre a sessão: ela só marca que o
+  // primeiro fator passou. `req.session.user` continua vazio, então requireAuth
+  // barra tudo até o segundo fator.
+  if (user.mfa_ativo) {
+    req.session.pendenteMfa = { id: user.id, expiraEm: Date.now() + PRAZO_MFA_MS };
+    return res.json({ mfaRequerido: true });
+  }
+
   req.session.user = { id: user.id, nome: user.nome, email: user.email, papel: user.papel };
+  await registrar(req, { acao: ACOES.LOGIN, detalhe: { mfa: false } });
   res.json({ user: req.session.user });
 });
 
-router.post('/logout', (req, res) => {
+/**
+ * Segundo fator. Aceita o código do aplicativo ou um código de recuperação.
+ *
+ * O limite de tentativas é o mesmo do login e conta na mesma chave: sem isso,
+ * 6 dígitos seriam adivinháveis em algumas milhares de tentativas.
+ */
+router.post('/login/mfa', limitarLogin, async (req, res) => {
+  const pendente = req.session?.pendenteMfa;
+  if (!pendente || pendente.expiraEm < Date.now()) {
+    delete req.session.pendenteMfa;
+    return res.status(401).json({ error: 'Sessão de login expirada. Entre novamente.' });
+  }
+
+  const [[user]] = await pool.query(
+    'SELECT id, nome, email, papel, ativo, mfa_segredo, mfa_ultimo_contador FROM users WHERE id = ?',
+    [pendente.id]
+  );
+  // Sem segredo não há segundo fator a conferir. Não deveria acontecer — só se
+  // chega aqui com mfa_ativo — mas conferir código contra segredo nulo seria
+  // uma porta aberta disfarçada de verificação.
+  if (!user || !user.ativo || !user.mfa_segredo) {
+    return res.status(401).json({ error: 'Credenciais inválidas' });
+  }
+
+  const codigo = String(req.body?.codigo ?? '');
+  const contador = verificarTotp(user.mfa_segredo, codigo, { contadorMinimo: user.mfa_ultimo_contador });
+
+  let viaBackup = false;
+  if (contador !== null) {
+    // Guardar o contador é o que impede reapresentar o mesmo código dentro dos
+    // 30 segundos em que ele ainda vale.
+    await pool.query('UPDATE users SET mfa_ultimo_contador = ? WHERE id = ?', [contador, user.id]);
+  } else {
+    viaBackup = await consumirCodigoBackup(user.id, codigo);
+    if (!viaBackup) {
+      registrarFalha(req);
+      await registrar(req, {
+        acao: ACOES.LOGIN_MFA_FALHA,
+        usuario: { id: user.id, email: user.email },
+      });
+      return res.status(401).json({ error: 'Código inválido' });
+    }
+  }
+
+  limparTentativas(req);
+  await regenerarSessao(req);
+  req.session.user = { id: user.id, nome: user.nome, email: user.email, papel: user.papel };
+
+  await registrar(req, { acao: ACOES.LOGIN, detalhe: { mfa: true, via: viaBackup ? 'backup' : 'app' } });
+  if (viaBackup) {
+    await registrar(req, { acao: ACOES.MFA_BACKUP_USADO, entidade: 'usuario', entidadeId: user.id });
+  }
+  res.json({ user: req.session.user, usouCodigoBackup: viaBackup });
+});
+
+router.post('/logout', async (req, res) => {
+  await registrar(req, { acao: ACOES.LOGOUT });
   req.session.destroy(() => res.json({ ok: true }));
 });
 
@@ -86,7 +161,41 @@ router.put('/me/senha', requireAuth, async (req, res) => {
     await bcrypt.hash(novaSenha, 12),
     user.id,
   ]);
+  await registrar(req, { acao: ACOES.SENHA_ALTERADA, entidade: 'usuario', entidadeId: user.id });
   res.json({ ok: true });
 });
+
+function regenerarSessao(req) {
+  return new Promise((resolve, reject) => req.session.regenerate((e) => (e ? reject(e) : resolve())));
+}
+
+/**
+ * Gasta um código de recuperação, se o informado bater com algum não usado.
+ *
+ * Os códigos são guardados como hash, então não dá para procurar pelo valor:
+ * é preciso comparar contra cada um dos que sobraram. São no máximo dez, e
+ * quem chega aqui já passou pela senha e pelo limite de tentativas.
+ */
+async function consumirCodigoBackup(userId, informado) {
+  const limpo = normalizarCodigoBackup(informado);
+  if (limpo.length !== 8) return false;
+
+  const [linhas] = await pool.query(
+    'SELECT id, codigo_hash FROM mfa_codigo_backup WHERE user_id = ? AND usado_em IS NULL',
+    [userId]
+  );
+  for (const linha of linhas) {
+    if (await bcrypt.compare(limpo, linha.codigo_hash)) {
+      // A condição `usado_em IS NULL` no UPDATE fecha a corrida de duas
+      // requisições simultâneas com o mesmo código: só uma afeta linha.
+      const [r] = await pool.query(
+        'UPDATE mfa_codigo_backup SET usado_em = NOW() WHERE id = ? AND usado_em IS NULL',
+        [linha.id]
+      );
+      return r.affectedRows === 1;
+    }
+  }
+  return false;
+}
 
 export default router;
