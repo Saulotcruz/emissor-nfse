@@ -188,11 +188,16 @@ Isto **não** tem relação com numeração: o número da DPS é consumido na em
 devolve, então não há falha de sequência. O que se corrige é o sistema afirmar que uma nota está
 válida quando não está mais.
 
-Vale no cron, junto do alerta:
+Confere as notas autorizadas nos **últimos 90 dias** — a janela existe para a carga na SEFIN
+não crescer junto com o histórico. `--dias 365` amplia; `--dias 0` confere todas.
+
+No cron, de meia em meia hora:
 
 ```
-30 8 * * * cd /var/www/emissor-nfse && /usr/bin/node scripts/sincronizar.js >> logs/sincronizar.log 2>&1
+*/30 * * * * cd /var/www/emissor-nfse && /usr/bin/node scripts/sincronizar.js >> logs/sincronizar.log 2>&1
 ```
+
+Note o `*/30`: `30 * * * *` roda de hora em hora, no minuto 30 — não a cada 30 minutos.
 
 ### Alertas por e-mail
 

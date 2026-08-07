@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../app.js';
 import { pool } from '../db/pool.js';
 import { resetDb, createUser, loginAgent, createTomador } from './helpers/db.js';
+import { sincronizarNotas } from '../services/nfse/client.js';
 
 const app = createApp();
 let agent;
@@ -21,6 +22,7 @@ beforeEach(async () => {
     [tomador.id, servico.id, '3'.repeat(50)]
   );
   notaId = r.insertId;
+  await pool.query('UPDATE nota SET autorizada_em = NOW() WHERE id = ?', [notaId]);
 });
 
 afterAll(async () => {
@@ -104,6 +106,26 @@ describe('POST /api/notas/:id/cancelar', () => {
     const res = await agent.post(`/api/notas/${notaId}/cancelar`).send({ motivo: 'Justificativa suficiente aqui' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/autorizada/);
+  });
+});
+
+describe('sincronizarNotas — janela de tempo', () => {
+  // A janela é o que impede a carga na SEFIN de crescer junto com o histórico
+  // quando o comando roda de meia em meia hora.
+  it('ignora nota autorizada fora da janela e pega a de dentro', async () => {
+    await pool.query('UPDATE nota SET autorizada_em = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?', [notaId]);
+    expect(await sincronizarNotas({ dias: 90 })).toHaveLength(0);
+    expect(await sincronizarNotas({ dias: 365 })).toHaveLength(1);
+  });
+
+  it('dias = 0 confere todas, independente da data', async () => {
+    await pool.query('UPDATE nota SET autorizada_em = DATE_SUB(NOW(), INTERVAL 5 YEAR) WHERE id = ?', [notaId]);
+    expect(await sincronizarNotas({ dias: 0 })).toHaveLength(1);
+  });
+
+  it('não confere nota que já está cancelada', async () => {
+    await pool.query('UPDATE nota SET status = ?, autorizada_em = NOW() WHERE id = ?', ['cancelada', notaId]);
+    expect(await sincronizarNotas({ dias: 90 })).toHaveLength(0);
   });
 });
 

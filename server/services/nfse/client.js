@@ -337,11 +337,22 @@ export async function sincronizarNota(notaId) {
   return { mudou: true, novoStatus: 'cancelada' };
 }
 
-/** Sincroniza todas as notas autorizadas. */
-export async function sincronizarNotas({ limite = 200 } = {}) {
+/**
+ * Sincroniza as notas autorizadas de um período.
+ *
+ * A janela existe para a carga não crescer junto com o histórico: rodando de
+ * meia em meia hora, conferir todas as notas já emitidas seria desperdício —
+ * uma nota de um ano atrás não vai ser cancelada agora. `dias = 0` desliga a
+ * janela e confere tudo, útil para uma varredura pontual.
+ */
+export async function sincronizarNotas({ limite = 500, dias = 90 } = {}) {
+  const filtroPeriodo = dias > 0 ? 'AND autorizada_em >= DATE_SUB(NOW(), INTERVAL ? DAY)' : '';
+  const params = dias > 0 ? [dias, limite] : [limite];
   const [notas] = await pool.query(
-    "SELECT id FROM nota WHERE status = 'autorizada' AND chave_acesso IS NOT NULL ORDER BY id DESC LIMIT ?",
-    [limite]
+    `SELECT id FROM nota
+      WHERE status = 'autorizada' AND chave_acesso IS NOT NULL ${filtroPeriodo}
+      ORDER BY id DESC LIMIT ?`,
+    params
   );
   const resultados = [];
   for (const n of notas) {
