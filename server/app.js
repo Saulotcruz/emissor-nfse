@@ -9,6 +9,26 @@ import notasRoutes from './routes/notas.js';
 import configRoutes from './routes/config.js';
 import stripeRoutes from './routes/stripe.js';
 
+/**
+ * Em produção, um SESSION_SECRET fraco é o mesmo que não ter autenticação:
+ * quem souber o segredo forja um cookie de sessão e emite nota em nome da
+ * empresa. Falhar ao subir é melhor que rodar meses com 'dev-secret'.
+ */
+function segredoDeSessao() {
+  const segredo = process.env.SESSION_SECRET;
+  const producao = process.env.NODE_ENV === 'production';
+
+  if (producao) {
+    if (!segredo || segredo === 'dev-secret') {
+      throw new Error('SESSION_SECRET não configurado. Gere um: openssl rand -hex 32');
+    }
+    if (segredo.length < 32) {
+      throw new Error('SESSION_SECRET curto demais (mínimo 32 caracteres)');
+    }
+  }
+  return segredo || 'dev-secret';
+}
+
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
@@ -22,14 +42,19 @@ export function createApp() {
   const MySQLStore = MySQLStoreFactory(session);
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'dev-secret',
+      secret: segredoDeSessao(),
+      name: 'nfse.sid',
       resave: false,
       saveUninitialized: false,
       store: isTest ? undefined : new MySQLStore({ createDatabaseTable: true }, pool.pool),
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.COOKIE_SECURE === '1',
+        // Em produção o cookie só viaja por HTTPS, a menos que se desligue de
+        // propósito. Esquecer COOKIE_SECURE=1 atrás do nginx exporia a sessão.
+        secure: process.env.COOKIE_SECURE === '0'
+          ? false
+          : process.env.COOKIE_SECURE === '1' || process.env.NODE_ENV === 'production',
         maxAge: 1000 * 60 * 60 * 12,
       },
     })
